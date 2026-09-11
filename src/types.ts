@@ -133,4 +133,4 @@ export interface ApparatusDetail {
   spec: string;
 }
 
-export type ActiveNavSection = 'home' | 'labs' | 'how-it-works' | 'mentoring' | 'resources' | 'about';
+export type ActiveNavSection = 'home' | 'labs' | 'how-it-works' | 'mentoring' | 'resources' | 'about' | 'feedback';

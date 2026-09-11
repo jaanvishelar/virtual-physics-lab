@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Atom, Menu, X, ArrowUpRight, Compass, BookOpen, HelpCircle, Info, Layers } from 'lucide-react';
+import { Atom, Menu, X, ArrowUpRight, Compass, BookOpen, HelpCircle, Info, Layers, MessageSquare } from 'lucide-react';
 import { ActiveNavSection } from '../types';
 
 interface NavbarProps {
@@ -18,7 +18,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeSection, onNavigate, onOpe
     { label: 'Mentoring', id: 'mentoring', icon: <HelpCircle className="w-4 h-4" /> },
     { label: 'Resources', id: 'resources', icon: <BookOpen className="w-4 h-4" /> },
     { label: 'About', id: 'about', icon: <Info className="w-4 h-4" /> },
-  ];
+    { label: 'Student Feedback', id: 'feedback', icon: <MessageSquare className="w-4 h-4" /> },
+];
 
   const handleLinkClick = (id: ActiveNavSection) => {
     onNavigate(id);

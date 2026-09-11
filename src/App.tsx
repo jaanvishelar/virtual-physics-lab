@@ -7,6 +7,7 @@ import { HowItWorks } from './components/HowItWorks';
 import { MentoringPreview } from './components/MentoringPreview';
 import { ResourcePreview } from './components/ResourcePreview';
 import { AboutSection } from './components/AboutSection';
+import { FeedbackSection } from './components/FeedbackSection';
 import { Footer } from './components/Footer';
 import { LabModuleView } from './components/LabModuleView';
 import { OhmsLawLab } from './components/labs/ohms-law/OhmsLawLab';
@@ -67,6 +68,9 @@ export default function App() {
       } else if (hash === '#about') {
         setActiveSection('about');
         document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' });
+      } else if (hash === '#feedback') {
+        setActiveSection('feedback');
+        document.getElementById('feedback-section')?.scrollIntoView({ behavior: 'smooth' });
       } else {
         setActiveSection('home');
       }
@@ -96,6 +100,7 @@ export default function App() {
         'mentoring': 'mentoring-section',
         'resources': 'resources-section',
         'about': 'about-section',
+        'feedback': 'feedback-section',
       };
       const element = document.getElementById(sectionIdMap[section]);
       if (element) {
@@ -208,6 +213,8 @@ export default function App() {
             <ResourcePreview />
 
             <AboutSection />
+
+            <FeedbackSection />
           </>
         )}
       </main>
