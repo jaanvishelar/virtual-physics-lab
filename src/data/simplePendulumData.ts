@@ -9,8 +9,8 @@ export interface PendulumApparatusDetail {
 
 export const SIMPLE_PENDULUM_INFO = {
   title: 'Simple Pendulum — Determination of g',
-  experimentNumber: '02',
-  targetLevel: 'Classes 9–11',
+  experimentNumber: '03',
+  targetLevel: 'Class 11',
   aim: 'To determine the acceleration due to gravity (g) using a simple pendulum.',
   theory: {
     statement:

@@ -2,7 +2,7 @@ import { ApparatusDetail, QuizQuestion, VivaQuestionItem } from '../types';
 
 export const OHMS_LAW_INFO = {
   title: "Verification of Ohm's Law & Resistance",
-  targetLevel: "Classes 9–12",
+  targetLevel: "Class 11",
   aim: "To study the relationship between potential difference and current through a conductor and determine its resistance.",
   theory: {
     statement: "At constant physical conditions (such as temperature, mechanical strain, and cross-sectional area), the current flowing through a conductor is directly proportional to the potential difference applied across its ends.",

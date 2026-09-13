@@ -6,6 +6,8 @@ interface ProjectileControlsProps {
   onVelocityChange: (val: number) => void;
   angle: number;
   onAngleChange: (val: number) => void;
+  launchHeight?: number;
+  onLaunchHeightChange?: (val: number) => void;
   isRunning: boolean;
   isPaused: boolean;
   isCompleted: boolean;
@@ -23,6 +25,8 @@ export const ProjectileControls: React.FC<ProjectileControlsProps> = ({
   onVelocityChange,
   angle,
   onAngleChange,
+  launchHeight = 0,
+  onLaunchHeightChange,
   isRunning,
   isPaused,
   isCompleted,
@@ -145,6 +149,104 @@ export const ProjectileControls: React.FC<ProjectileControlsProps> = ({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Control 3: Launch Height Elevation (h) */}
+      <div className="space-y-2 pt-2 border-t border-slate-100">
+        <div className="flex items-center justify-between text-xs">
+          <label htmlFor="input-height" className="font-semibold text-slate-700 flex items-center gap-1.5">
+            <span>Launch Height (h)</span>
+            <span className="text-slate-400 font-normal">[0 – 20 m]</span>
+          </label>
+          <span className={`font-mono font-bold px-2 py-0.5 rounded text-xs border ${
+            launchHeight > 0 
+              ? 'bg-amber-50 text-amber-800 border-amber-200' 
+              : 'bg-slate-50 text-slate-700 border-slate-200'
+          }`}>
+            {launchHeight === 0 ? '0 m (Ground level)' : `${launchHeight} m`}
+          </span>
+        </div>
+
+        <input
+          id="input-height"
+          type="range"
+          min="0"
+          max="20"
+          step="1"
+          value={launchHeight}
+          disabled={!canEdit}
+          onChange={(e) => onLaunchHeightChange && onLaunchHeightChange(Number(e.target.value))}
+          className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+
+        {/* Height Presets */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="text-[10px] uppercase font-mono text-slate-400 mr-1">Presets:</span>
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => onLaunchHeightChange && onLaunchHeightChange(0)}
+            className={`px-2 py-1 rounded text-[11px] font-mono font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              launchHeight === 0
+                ? 'bg-indigo-600 text-white shadow-2xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+            }`}
+          >
+            Ground level = 0 m
+          </button>
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => onLaunchHeightChange && onLaunchHeightChange(3)}
+            className={`px-2 py-1 rounded text-[11px] font-mono font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              launchHeight === 3
+                ? 'bg-amber-600 text-white shadow-2xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+            }`}
+          >
+            1st floor ≈ 3 m
+          </button>
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => onLaunchHeightChange && onLaunchHeightChange(6)}
+            className={`px-2 py-1 rounded text-[11px] font-mono font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              launchHeight === 6
+                ? 'bg-amber-600 text-white shadow-2xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+            }`}
+          >
+            2nd floor ≈ 6 m
+          </button>
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => onLaunchHeightChange && onLaunchHeightChange(9)}
+            className={`px-2 py-1 rounded text-[11px] font-mono font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              launchHeight === 9
+                ? 'bg-amber-600 text-white shadow-2xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+            }`}
+          >
+            3rd floor ≈ 9 m
+          </button>
+          <button
+            type="button"
+            disabled={!canEdit}
+            onClick={() => onLaunchHeightChange && onLaunchHeightChange(12)}
+            className={`px-2 py-1 rounded text-[11px] font-mono font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+              launchHeight === 12
+                ? 'bg-amber-600 text-white shadow-2xs'
+                : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200'
+            }`}
+          >
+            4th floor ≈ 12 m
+          </button>
+        </div>
+
+        <p className="text-[11px] text-slate-500 pt-0.5 italic">
+          Floor heights are approximate and can be adjusted for investigation.
+        </p>
       </div>
 
       {/* Gravity Display (Fixed Earth g) */}

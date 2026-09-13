@@ -4,7 +4,7 @@ export const HOOKES_LAW_INFO = {
   id: 'hookes-law',
   title: "Hooke's Law — Verification & Spring Constant",
   tagline: "Verification of Linear Elasticity & Determination of Spring Constant",
-  classes: 'Classes 9–11',
+  classes: 'Class 9',
   category: 'Elasticity & Material Properties',
   aim: "To verify Hooke's Law by studying the relationship between the applied force and extension produced in a spring, and to determine the spring constant.",
   theory: {

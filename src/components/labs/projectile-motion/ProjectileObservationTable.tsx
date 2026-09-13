@@ -94,6 +94,7 @@ export const ProjectileObservationTable: React.FC<ProjectileObservationTableProp
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-600">
               <tr>
                 <th className="py-3 px-3.5 font-bold">Sr. No.</th>
+                <th className="py-3 px-3.5 font-bold">Launch Height h (m)</th>
                 <th className="py-3 px-3.5 font-bold">Velocity u (m/s)</th>
                 <th className="py-3 px-3.5 font-bold">Angle θ (°)</th>
                 <th className="py-3 px-3.5 font-bold">Time of Flight T (s)</th>
@@ -107,6 +108,7 @@ export const ProjectileObservationTable: React.FC<ProjectileObservationTableProp
               {observations.map((obs) => {
                 const isConstantV = obs.velocity === 20;
                 const isBest = isConstantV && bestObservation && bestObservation.id === obs.id;
+                const isElevated = (obs.launchHeight || 0) > 0;
 
                 return (
                   <tr
@@ -116,6 +118,15 @@ export const ProjectileObservationTable: React.FC<ProjectileObservationTableProp
                     }`}
                   >
                     <td className="py-2.5 px-3.5 text-slate-500">#{obs.srNo}</td>
+                    <td className="py-2.5 px-3.5 font-mono">
+                      {isElevated ? (
+                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 text-[10px] font-bold">
+                          {obs.launchHeight?.toFixed(1)}m (Elevated)
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 text-[11px]">0.0m (Ground)</span>
+                      )}
+                    </td>
                     <td className="py-2.5 px-3.5 text-slate-800">
                       <span className={isConstantV ? 'font-bold text-indigo-700' : 'text-slate-600'}>
                         {obs.velocity.toFixed(1)}

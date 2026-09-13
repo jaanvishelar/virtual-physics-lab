@@ -16,6 +16,7 @@ import { TLGraph } from './TLGraph';
 import { PendulumQuiz } from './PendulumQuiz';
 import { PendulumViva } from './PendulumViva';
 import { PendulumDoubt } from './PendulumDoubt';
+import { SaveAttemptButton } from '../../common/SaveAttemptButton';
 import {
   ArrowLeft,
   BookOpen,
@@ -228,7 +229,7 @@ export const SimplePendulumLab: React.FC<SimplePendulumLabProps> = ({
 
             <div className="truncate">
               <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-indigo-600 block">
-                Experiment 02 &bull; Classes 9–11
+                Experiment 03 &bull; Class 11
               </span>
               <h1 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
                 Simple Pendulum &bull; Determination of g
@@ -472,6 +473,25 @@ export const SimplePendulumLab: React.FC<SimplePendulumLabProps> = ({
           observations={observations}
           theoreticalG={G_THEORETICAL}
         />
+
+        {/* SAVE EXPERIMENT PROGRESS FOR STUDENTS */}
+        <div className="flex justify-end pt-2 pb-2">
+          <SaveAttemptButton
+            experimentSlug="simple-pendulum"
+            experimentTitle="Determination of 'g' using Simple Pendulum (L vs T² Graph)"
+            inputs={{
+              effectiveLength: `${(length * 100).toFixed(1)} cm (${length.toFixed(2)} m)`,
+              initialAmplitude: `${initialAngle}°`,
+              targetOscillations: `${targetOscillations}`,
+              theoreticalGravity: `${G_THEORETICAL} m/s²`,
+            }}
+            calculatedResults={{
+              theoreticalPeriod: `${currentTheoreticalPeriod.toFixed(3)} s`,
+              lastMeasuredPeriod: oscillations > 0 ? `${(measuredTime / oscillations).toFixed(3)} s` : '—',
+            }}
+            observations={observations}
+          />
+        </div>
 
         {/* 7. APPARATUS SPECIFICATIONS */}
         <div id="apparatus-section" className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-xs">

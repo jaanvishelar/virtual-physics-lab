@@ -17,6 +17,7 @@ import { LensGraph } from './LensGraph';
 import { LensQuiz } from './LensQuiz';
 import { LensViva } from './LensViva';
 import { LensDoubt } from './LensDoubt';
+import { SaveAttemptButton } from '../../common/SaveAttemptButton';
 import {
   ArrowLeft,
   BookOpen,
@@ -205,7 +206,7 @@ export const ConvexLensLab: React.FC<ConvexLensLabProps> = ({
             <div className="space-y-2 max-w-3xl">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-xs font-bold uppercase tracking-wider">
-                  EXPERIMENT 05 &bull; Classes 10–12
+                  EXPERIMENT 05 &bull; Class 12
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono text-xs font-semibold">
                   Ray Optics &bull; Thin-Lens Formulation
@@ -499,6 +500,29 @@ export const ConvexLensLab: React.FC<ConvexLensLabProps> = ({
           <LensGraph
             observations={observations}
             theoreticalFocalLength={FOCAL_LENGTH}
+          />
+        </div>
+
+        {/* SAVE EXPERIMENT PROGRESS FOR STUDENTS */}
+        <div className="flex justify-end pt-2 pb-2">
+          <SaveAttemptButton
+            experimentSlug="convex-lens"
+            experimentTitle="Focal Length of Convex Lens (u-v & 1/u-1/v Method)"
+            inputs={{
+              objectDistanceU: `${uMagnitude.toFixed(1)} cm (signed u = ${u.toFixed(1)} cm)`,
+              screenPosition: `${screenPos.toFixed(1)} cm`,
+              nominalFocalLength: `${FOCAL_LENGTH.toFixed(1)} cm`,
+            }}
+            calculatedResults={{
+              imageDistanceV: isAtFocus ? 'Infinity (Parallel Rays)' : `${v.toFixed(2)} cm`,
+              magnification: isAtFocus ? 'Infinity' : `${magnification.toFixed(3)}`,
+              natureOfImage: isAtFocus
+                ? 'Real, highly magnified at infinity'
+                : isVirtual
+                ? 'Virtual, erect, magnified'
+                : 'Real, inverted',
+            }}
+            observations={observations}
           />
         </div>
 

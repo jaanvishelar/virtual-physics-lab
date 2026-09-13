@@ -39,7 +39,7 @@ export const LensViva: React.FC = () => {
             Laboratory Viva Voce Practice ({CONVEX_LENS_VIVA_QUESTIONS.length} Questions)
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
-            Key practical questions commonly posed during Classes 10–12 Ray Optics board practical examinations.
+            Key practical questions commonly posed during Class 12 Ray Optics board practical examinations.
           </p>
         </div>
 

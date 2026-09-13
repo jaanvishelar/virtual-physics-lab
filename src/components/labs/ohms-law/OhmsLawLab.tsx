@@ -15,6 +15,7 @@ import { VIGraph } from './VIGraph';
 import { QuizSection } from './QuizSection';
 import { VivaSection } from './VivaSection';
 import { DoubtSection } from './DoubtSection';
+import { SaveAttemptButton } from '../../common/SaveAttemptButton';
 import {
   ArrowLeft,
   Sliders,
@@ -127,7 +128,7 @@ export const OhmsLawLab: React.FC<OhmsLawLabProps> = ({
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 mb-8 shadow-xs">
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
-              EXPERIMENT 01
+              EXPERIMENT 02
             </span>
             <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
               {OHMS_LAW_INFO.targetLevel}
@@ -498,6 +499,25 @@ export const OhmsLawLab: React.FC<OhmsLawLabProps> = ({
             observations={observations}
             theoreticalResistance={safeResistance}
           />
+
+          {/* SAVE EXPERIMENT PROGRESS FOR STUDENTS */}
+          <div className="flex justify-end pt-2 pb-2">
+            <SaveAttemptButton
+              experimentSlug="ohms-law"
+              experimentTitle="Verification of Ohm's Law (V = IR)"
+              inputs={{
+                voltage: `${voltage.toFixed(2)} V`,
+                fixedResistance: `${safeResistance.toFixed(2)} Ω`,
+                rheostatResistance: `${rheostatResistance.toFixed(2)} Ω`,
+                circuitSwitch: isSwitchOn ? 'CLOSED (Active)' : 'OPEN (Isolated)',
+              }}
+              calculatedResults={{
+                circuitCurrent: `${current.toFixed(4)} A`,
+                calculatedResistance: `${(voltage / (current || 0.0001)).toFixed(2)} Ω`,
+              }}
+              observations={observations}
+            />
+          </div>
 
         </div>
 

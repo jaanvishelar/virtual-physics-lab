@@ -89,14 +89,17 @@ export const RangeAngleGraph: React.FC<RangeAngleGraphProps> = ({
       
       {/* Graph Header & Legend */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
-        <div className="flex items-center gap-2">
-          <LineChart className="w-4 h-4 text-indigo-600" />
-          <h3 className="font-bold text-slate-900 text-sm tracking-tight">
-            Dynamic Graph: Horizontal Range (R) vs Projection Angle (θ)
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-indigo-50 text-indigo-800 text-xs font-mono font-bold uppercase border border-indigo-200">
+            <LineChart className="w-3.5 h-3.5" />
+            <span>Second Investigation</span>
+          </div>
+          <h3 className="font-bold text-slate-900 text-base tracking-tight">
+            Investigation: Effect of Launch Angle on Horizontal Range
           </h3>
-          <span className="px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-[11px] font-semibold">
-            Constant u = {analysisVelocity} m/s
-          </span>
+          <p className="text-xs text-slate-500 font-sans">
+            Initial velocity = {analysisVelocity} m/s &bull; Gravity = {g} m/s² &bull; Launch height = 0 m
+          </p>
         </div>
 
         <div className="flex items-center gap-3 text-xs font-mono">
@@ -510,13 +513,13 @@ export const RangeAngleGraph: React.FC<RangeAngleGraphProps> = ({
       </div>
 
       {/* SECTION 2: CRITICAL SCIENTIFIC PRINCIPLE - WHY LINEAR REGRESSION IS NOT USED */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-amber-50/50 border border-amber-200/80 text-xs space-y-2">
-        <div className="flex items-center gap-2 text-amber-900 font-bold">
-          <Info className="w-4 h-4 text-amber-600 shrink-0" />
+      <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs space-y-2">
+        <div className="flex items-center gap-2 text-slate-900 font-bold">
+          <Info className="w-4 h-4 text-indigo-600 shrink-0" />
           <span>Scientific Principle: Why Linear Least-Squares Regression is Not Used</span>
         </div>
         <p className="text-slate-800 leading-relaxed font-sans text-xs">
-          <strong>"Range is not linearly proportional to projection angle; therefore a straight-line least-squares slope is not used for this relationship."</strong>
+          <strong>&ldquo;Range is not linearly proportional to projection angle; therefore a straight-line least-squares slope is not used for this relationship.&rdquo;</strong>
         </p>
         <p className="text-slate-600 leading-relaxed font-sans text-xs">
           Horizontal range follows the non-linear sinusoidal function <em>R(θ) = [u² / g] · sin(2θ)</em>.
@@ -524,6 +527,17 @@ export const RangeAngleGraph: React.FC<RangeAngleGraphProps> = ({
           projectile range increases to an optimal peak at approximately 45° and then symmetrically decreases toward 90°.
           Therefore, evaluating this experiment involves comparing recorded coordinate points directly with the theoretical sinusoidal curve rather than fitting an artificial linear slope.
         </p>
+      </div>
+
+      {/* SCIENTIFIC CONCLUSION (REQUIRED) */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-indigo-50/70 border border-indigo-200 text-xs space-y-2">
+        <div className="flex items-center gap-2 text-indigo-950 font-bold text-sm">
+          <Award className="w-4 h-4 text-indigo-600 shrink-0" />
+          <span>Conclusion:</span>
+        </div>
+        <blockquote className="text-indigo-950 font-medium leading-relaxed font-sans text-xs sm:text-sm pl-3 border-l-2 border-indigo-400 italic">
+          &ldquo;For equal launch and landing heights and negligible air resistance, the horizontal range is maximum at 45°. When the launch height is increased, the projectile remains in the air for longer and can travel farther horizontally for the same initial velocity and angle.&rdquo;
+        </blockquote>
       </div>
 
     </div>

@@ -16,6 +16,7 @@ import { FXGraph } from './FXGraph';
 import { HookeQuiz } from './HookeQuiz';
 import { HookeViva } from './HookeViva';
 import { HookeDoubt } from './HookeDoubt';
+import { SaveAttemptButton } from '../../common/SaveAttemptButton';
 import {
   ArrowLeft,
   BookOpen,
@@ -131,7 +132,7 @@ export const HookesLawLab: React.FC<HookesLawLabProps> = ({
 
             <div className="truncate">
               <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-indigo-600 block">
-                Experiment 03 &bull; Classes 9–11
+                Experiment 01 &bull; Class 9
               </span>
               <h1 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
                 Hooke's Law &bull; Verification &amp; Spring Constant
@@ -169,7 +170,7 @@ export const HookesLawLab: React.FC<HookesLawLabProps> = ({
             <div className="space-y-2 max-w-3xl">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-xs font-bold uppercase tracking-wider">
-                  EXPERIMENT 03 &bull; Classes 9–11
+                  EXPERIMENT 01 &bull; Class 9
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono text-xs font-semibold">
                   Elasticity &amp; Material Properties
@@ -354,6 +355,24 @@ export const HookesLawLab: React.FC<HookesLawLabProps> = ({
           observations={observations}
           theoreticalK={THEORETICAL_K}
         />
+
+        {/* SAVE EXPERIMENT PROGRESS FOR STUDENTS */}
+        <div className="flex justify-end pt-2 pb-2">
+          <SaveAttemptButton
+            experimentSlug="hookes-law"
+            experimentTitle="Verification of Hooke's Law & Spring Constant (F = -kx)"
+            inputs={{
+              suspendedMass: `${massGrams} g (${massKg.toFixed(3)} kg)`,
+              gravity: `${G} m/s²`,
+              springNominalConstant: `${THEORETICAL_K} N/m`,
+            }}
+            calculatedResults={{
+              appliedForce: `${force.toFixed(4)} N`,
+              elongationX: `${extensionCm.toFixed(3)} cm (${extensionMeters.toFixed(5)} m)`,
+            }}
+            observations={observations}
+          />
+        </div>
 
         {/* 7. APPARATUS SPECIFICATIONS */}
         <div id="apparatus-section" className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-xs">

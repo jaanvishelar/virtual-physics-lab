@@ -3,7 +3,7 @@ import { QuizQuestion, VivaQuestionItem, ApparatusDetail } from '../types';
 export const PROJECTILE_MOTION_INFO = {
   header: {
     expNumber: '04',
-    classes: 'Classes 11–12',
+    classes: 'Class 11',
     category: 'Mechanics • Kinematics',
     badge: 'Fully Interactive Laboratory Bench',
     title: 'Projectile Motion — Range & Trajectory',
@@ -126,132 +126,140 @@ export const PROJECTILE_PROCEDURE: string[] = [
 
 export const PROJECTILE_PRECAUTIONS = [
   {
-    title: 'Equal Launch and Landing Levels',
-    description: 'Ensure the launch nozzle origin and the landing target lie on the exact same horizontal datum plane (y₀ = 0 m); any elevation difference shifts the maximum-range angle away from 45°.'
+    title: 'Ensure Launch and Landing Heights are Clearly Identified',
+    description: 'Ensure launch and landing heights are clearly identified; distinguish whether the projectile lands on flat ground (y = 0) or whether an elevated datum (h > 0) is being investigated.'
   },
   {
-    title: 'Correct Angle Measurement',
-    description: 'Verify the protractor reading against the horizontal ground line rather than the vertical normal to avoid angle complement confusion.'
+    title: 'Convert Angles to Radians before Applying Trigonometric Functions',
+    description: 'Convert angles to radians before applying trigonometric functions in calculations: θ_rad = θ_deg × (π / 180).'
   },
   {
-    title: 'Consistent System of Units',
-    description: 'Always calculate with velocities in meters per second (m/s), angles converted to radians for trigonometric functions, and distances in meters (m).'
+    title: 'Keep Velocity Constant when Testing the Effect of Angle',
+    description: 'When investigating the effect of launch angle θ on horizontal range R, keep the initial velocity u strictly constant across all angle trials (e.g. u = 20 m/s).'
   },
   {
-    title: 'Ideal Model Assumptions & Air Resistance',
-    description: 'The simulation operates on ideal model conditions: air resistance is neglected, crosswind is neglected, launch and landing heights are equal, and gravity is constant at 9.81 m/s². Air resistance can alter real-world projectile trajectories and reduce range.'
+    title: 'Keep Angle Constant when Testing the Effect of Height',
+    description: 'When investigating the effect of launch height h on time of flight and range, keep the launch angle θ and initial velocity u strictly constant (e.g. θ = 45°, u = 20 m/s).'
   },
   {
-    title: 'Controlled Velocity Across Trials',
-    description: 'When investigating the effect of launch angle θ on range R, keep the initial velocity u strictly constant across all angle trials.'
+    title: 'Use Consistent Units',
+    description: 'Always maintain consistent SI units: velocity in m/s, time in s, angles in degrees/radians, heights and ranges in m, and gravity in m/s².'
   },
   {
-    title: 'Systematic Angular Sampling',
-    description: 'Test both low and high angles (15°, 30°, 45°, 60°, 75°) across the full quadrant to observe the symmetric rise and fall of the range curve.'
+    title: 'Distinguish Ground Height from Launch Point Height',
+    description: 'Distinguish between maximum height above the ground H_ground = h + u²sin²θ/(2g) and maximum height above the launch point H_launch = u²sin²θ/(2g).'
   },
   {
-    title: 'Record Actual Simulation Coordinates',
-    description: 'Tabulate values generated directly from the simulation rather than guessing or transcribing from memory.'
-  },
-  {
-    title: 'Distinguish Maximum Height from Range',
-    description: 'Do not confuse peak vertical displacement H (at t = T/2) with total horizontal traverse R (at t = T).'
+    title: 'Systematic Sampling across Quadrant',
+    description: 'Test complementary angles (15° & 75°, 30° & 60°) to observe range symmetry on flat terrain.'
   }
 ];
 
 export const PROJECTILE_COMMON_ERRORS = [
   {
-    name: 'Neglecting Air Drag in Real-World Comparisons',
-    cause: 'Students often expect actual physical objects to match ideal vacuum projectile ranges exactly.',
-    prevention: 'Clarify that air resistance can alter real-world projectile trajectories and reduce range compared to the ideal theoretical model.'
+    name: 'Air Resistance Neglected in Simulation',
+    cause: 'In this idealized educational simulation, air resistance is neglected. In reality, wind and aerodynamic air drag can reduce horizontal range and peak height considerably.',
+    prevention: 'Understand that virtual physics simulations demonstrate fundamental laws under vacuum approximations; real-world projectiles experience drag.'
   },
   {
-    name: 'Trigonometric Degree versus Radian Mismatch',
-    cause: 'Passing raw degree values into standard mathematical sine and cosine functions expecting correct ratios.',
-    prevention: 'Always convert θ_rad = θ_deg × (π / 180) prior to evaluating trigonometric functions.'
+    name: 'Real-World Floor Height Variations',
+    cause: 'Assuming every real building has exactly 12 m between ground and 4th floor.',
+    prevention: 'Recognize that a 4th floor is only approximately 12 m (assuming ~3 m per floor), and real architecture varies.'
   },
   {
-    name: 'Confusing sin²(θ) with sin(2θ)',
-    cause: 'Mixing up the vertical maximum height formula H = u²sin²θ/(2g) with the horizontal range formula R = u²sin(2θ)/g.',
-    prevention: 'Emphasize that range depends on the double-angle sin(2θ), which peaks at θ = 45°, whereas peak height depends on sin²θ, which peaks at θ = 90°.'
+    name: 'Angle Measurement Errors in Physical Setups',
+    cause: 'Small physical protractor alignment errors or reading angle against vertical normal instead of horizontal ground.',
+    prevention: 'Verify angle relative to horizontal ground line; small deviations near 45° significantly change range.'
   },
   {
-    name: 'Unequal Launch and Landing Heights',
-    cause: 'Firing from an elevated table down to the floor while expecting the 45° rule to hold.',
-    prevention: 'Remind students that firing from an elevation (y₀ > 0) favors a lower launch angle (< 45°) for maximum horizontal travel.'
+    name: 'Ground Irregularities & Terrain Slope',
+    cause: 'Assuming physical test fields are mathematically flat datums.',
+    prevention: 'Real-world ground irregularities can affect impact times and landing positions.'
   },
   {
-    name: 'Prematurely Recording In-Flight Readings',
-    cause: 'Clicking to record data before the projectile has completed its full trajectory and landed on the ground.',
-    prevention: 'The lab bench locks trial recording until touchdown (y = 0 m) is confirmed.'
+    name: 'Confusing Maximum Height Datum',
+    cause: 'Reporting peak height above launch level when asked for peak height above the ground datum.',
+    prevention: 'Remember H_ground = h + (u·sinθ)²/(2g), which includes the elevated launch tower height h.'
   },
   {
-    name: 'Attempting Straight-Line Linear Regression on R vs θ',
-    cause: 'Assuming every experimental graph must be fitted with a straight line y = mx + c.',
-    prevention: 'Highlight that Range vs Angle is inherently sinusoidal (non-linear); linear least-squares regression is mathematically invalid here.'
+    name: 'Attempting Linear Regression on Range vs Angle',
+    cause: 'Assuming range increases linearly with projection angle.',
+    prevention: 'Range follows a sinusoidal curve R(θ) ∝ sin(2θ), peaking at 45° for level ground; linear slope calculation is physically invalid.'
   }
 ];
 
 export const PROJECTILE_QUIZ: QuizQuestion[] = [
   {
     id: 'pq-1',
-    question: 'What is projectile motion in classical mechanics?',
+    question: 'What happens to the horizontal component of velocity during ideal projectile motion?',
     options: [
-      'Motion in a straight line with constantly increasing acceleration',
-      'Two-dimensional motion under the sole influence of gravity, neglecting air resistance',
-      'Circular motion governed by a central centripetal force',
-      'One-dimensional vertical free fall with zero initial velocity'
+      'It steadily decreases to zero at the maximum height',
+      'It increases continuously due to downward gravitational acceleration',
+      'It remains strictly constant throughout the entire flight',
+      'It oscillates sinusoidally with the angle of elevation'
     ],
-    correctIndex: 1,
-    explanation: 'A projectile is launched into space and follows a parabolic trajectory governed solely by downward gravitational acceleration g, with zero horizontal acceleration when drag is neglected.'
+    correctIndex: 2,
+    explanation: 'Because gravity acts strictly downwards (ay = -g) and air drag is neglected (ax = 0), there is no horizontal acceleration. Thus, the horizontal velocity ux = u cos(θ) remains strictly constant throughout flight.'
   },
   {
     id: 'pq-2',
-    question: 'When air resistance is neglected, what happens to the horizontal component of velocity (uₓ) during flight?',
+    question: 'What happens to the vertical velocity at maximum height?',
     options: [
-      'It steadily decreases to zero at the highest point',
-      'It increases continuously due to gravity',
-      'It remains strictly constant throughout the entire flight',
-      'It fluctuates sinusoidally with time'
+      'It reaches its maximum positive value',
+      'It becomes momentarily zero (vy = 0)',
+      'It becomes equal to the launch speed u',
+      'It reverses direction instantaneously without reaching zero'
     ],
-    correctIndex: 2,
-    explanation: 'Because gravity acts strictly in the vertical direction (aᵧ = -g) and there are no horizontal forces (aₓ = 0), the horizontal velocity vₓ = u cos(θ) remains unchanged throughout the motion.'
+    correctIndex: 1,
+    explanation: 'As the projectile ascends, downward gravitational acceleration decelerates the vertical velocity until vy = 0 at the highest point (apex), after which the projectile begins accelerating downwards.'
   },
   {
     id: 'pq-3',
-    question: 'What is the theoretical formula for the horizontal range (R) when launch and landing heights are equal?',
+    question: 'What is the effect of increasing launch height?',
     options: [
-      'R = (u² · sin²(θ)) / (2g)',
-      'R = (2u · sin(θ)) / g',
-      'R = (u² · sin(2θ)) / g',
-      'R = (u · cos(θ)) / g'
+      'It decreases both time of flight and horizontal range',
+      'It increases both the time of flight and the horizontal range for the same initial velocity and angle',
+      'It only increases maximum height but has zero effect on flight duration',
+      'It causes the trajectory to become linear instead of parabolic'
     ],
-    correctIndex: 2,
-    explanation: 'Horizontal range is given by R = uₓ · T = (u cos θ) · (2u sin θ / g) = (u² · 2 sin θ cos θ) / g = u² sin(2θ) / g.'
+    correctIndex: 1,
+    explanation: 'Launching from an elevated platform (h > 0) means the projectile has extra vertical distance to descend to reach the ground datum (y = 0). This extends flight duration and increases total horizontal range.'
   },
   {
     id: 'pq-4',
-    question: 'For a fixed initial velocity under ideal conditions (equal heights, no drag), at what projection angle is horizontal range maximum?',
+    question: 'Under what condition does 45 degrees give maximum range?',
     options: [
-      '30°',
-      '45°',
-      '60°',
-      '90°'
+      'Under all launch conditions regardless of elevation or air drag',
+      'When launch and landing heights are equal and air resistance is neglected',
+      'Only when launching from high elevation cliffs into deep valleys',
+      'Only when gravitational acceleration g is equal to zero'
     ],
     correctIndex: 1,
-    explanation: 'Since R = (u²/g) · sin(2θ), maximum range occurs when sin(2θ) is maximized (sin(2θ) = 1), which occurs at 2θ = 90° or θ = 45°.'
+    explanation: 'The standard range formula R = (u²/g) sin(2θ) peaks at θ = 45° because sin(90°) = 1. This applies strictly when launch and landing heights are equal (y0 = y = 0) and air drag is negligible.'
   },
   {
     id: 'pq-5',
-    question: 'What happens to the trajectory if the initial launch velocity (u) is doubled while keeping the angle θ constant?',
+    question: 'Which equation is used for vertical displacement when launch height is non-zero?',
     options: [
-      'Both range and maximum height double',
-      'Range doubles, but maximum height quadruples',
-      'Both horizontal range and maximum height quadruple (4×)',
-      'Flight time quadruples while range doubles'
+      'y(t) = h + u·sin(θ)·t − ½·g·t²',
+      'y(t) = u·sin(θ)·t − ½·g·t²',
+      'y(t) = h + u·cos(θ)·t',
+      'y(t) = h − g·t'
     ],
-    correctIndex: 2,
-    explanation: 'Both maximum height H = u²sin²θ/(2g) and horizontal range R = u²sin(2θ)/g depend on the square of initial velocity (u²). Doubling u increases both H and R by a factor of 2² = 4.'
+    correctIndex: 0,
+    explanation: 'When launching from an initial elevation h above the ground datum, the vertical kinematic equation is y(t) = h + uy·t - ½gt² = h + u sin(θ) t - ½ g t².'
+  },
+  {
+    id: 'pq-6',
+    question: 'What happens to time of flight when launch height is increased while other parameters remain fixed?',
+    options: [
+      'Time of flight increases because the projectile must descend an extra vertical distance to reach ground level',
+      'Time of flight decreases because gravity pulls harder from greater heights',
+      'Time of flight remains unchanged because vertical launch velocity is fixed',
+      'Time of flight becomes zero as landing occurs immediately'
+    ],
+    correctIndex: 0,
+    explanation: 'Solving ½gt² − u sin(θ)t − h = 0 shows that increasing launch height h increases the positive time root, extending the duration of flight before touchdown at y = 0.'
   }
 ];
 
@@ -313,38 +321,56 @@ export const STANDARD_ANGLE_TRIALS = [
 export const PROJECTILE_VIVA: VivaQuestionItem[] = [
   {
     id: 'pv-1',
-    question: 'What is projectile motion and what shape does its path take?',
-    answer: 'Projectile motion is the two-dimensional motion of an object thrown obliquely into the air that moves under gravity alone. Its trajectory is a parabola, derived from eliminating time t between x = (u cos θ)t and y = (u sin θ)t - ½gt² to yield y = x tan θ - gx²/(2u² cos²θ).',
-    concept: 'Kinematic Definition & Trajectory Equation'
+    question: 'What is projectile motion?',
+    answer: 'Projectile motion is the two-dimensional motion of an object projected into the air with an initial velocity at an angle to the horizontal, moving under the constant downward acceleration of gravity alone while neglecting air resistance.',
+    concept: 'Kinematic Definition'
   },
   {
     id: 'pv-2',
-    question: 'What are the horizontal and vertical components of the initial velocity?',
-    answer: 'For a launch speed u at angle θ above the horizontal, the initial horizontal component is uₓ = u cos(θ) and the vertical component is uᵧ = u sin(θ). uₓ remains constant while uᵧ decreases at rate g.',
+    question: 'What are the horizontal and vertical components of velocity?',
+    answer: 'For a launch speed u at angle θ above the horizontal, the initial horizontal component is ux = u cos(θ) and the initial vertical component is uy = u sin(θ). In ideal motion, ux remains constant while uy changes at rate -g.',
     concept: 'Vector Resolution of Velocity'
   },
   {
     id: 'pv-3',
-    question: 'How is the total time of flight (T) derived?',
-    answer: 'The projectile returns to ground level when y = 0. Setting y = (u sin θ)T - ½gT² = 0 gives T(u sin θ - ½gT) = 0. Discounting launch instant T = 0 gives T = (2u sin θ) / g.',
-    concept: 'Time of Flight Derivation'
+    question: 'Why is the horizontal velocity constant in ideal projectile motion?',
+    answer: 'Because gravity acts solely in the downward vertical direction (ay = -g) and air resistance is neglected, there is no horizontal force acting on the projectile (Fx = 0, ax = 0). By Newton\'s first law of motion, the horizontal velocity ux remains strictly constant throughout the flight.',
+    concept: 'Newtonian Force & Acceleration'
   },
   {
     id: 'pv-4',
-    question: 'What is the formula for maximum height (H) and where does it occur?',
-    answer: 'At the apex of the trajectory, vertical velocity momentarily becomes zero: vᵧ = 0. Using vᵧ² = uᵧ² - 2gH gives 0 = (u sin θ)² - 2gH, yielding H = (u² sin²θ) / (2g). This occurs at half the total flight time t = T/2.',
-    concept: 'Apex Kinematics & Maximum Height'
+    question: 'Why does the vertical velocity become zero at maximum height?',
+    answer: 'As the projectile ascends, the downward gravitational acceleration g decelerates the upward vertical velocity uy. At the trajectory vertex (maximum height H), the vertical velocity momentarily drops to zero (vy = 0) before the projectile begins its downward descent.',
+    concept: 'Apex Kinematics'
   },
   {
     id: 'pv-5',
-    question: 'Why do complementary angles (e.g. 30° and 60°) produce the identical horizontal range?',
-    answer: 'Range depends on sin(2θ). For complementary angle (90° - θ), sin(2(90° - θ)) = sin(180° - 2θ) = sin(2θ). Therefore, pairs such as 15° and 75°, or 30° and 60°, land at the exact same horizontal distance, though the higher angle has greater peak altitude and longer flight time.',
-    concept: 'Complementary Angle Symmetry'
+    question: 'What is the significance of 45 degrees?',
+    answer: 'For equal launch and landing heights (y0 = y = 0) in the absence of air drag, horizontal range is given by R = (u²/g) sin(2θ). Because the maximum value of sin(2θ) is 1.0 when 2θ = 90°, the projection angle that yields maximum horizontal range is θ = 45°.',
+    concept: 'Equal-Height Optimal Angle'
   },
   {
     id: 'pv-6',
-    question: 'What simplifying assumptions are made in the ideal projectile-motion model?',
-    answer: 'The ideal model assumes: (1) Air resistance and aerodynamic lift are negligible; (2) Gravitational acceleration g is constant in magnitude and direction; (3) Earth curvature and rotation (Coriolis force) are negligible; and (4) Launch and landing heights are identical.',
+    question: 'Does 45 degrees always give maximum range?',
+    answer: 'No. The 45° rule applies strictly when launch and landing heights are identical and air drag is neglected. When launched from an elevation (h > 0), the optimal angle for maximum range drops below 45° (typically 35°–42° depending on launch height and speed) because the projectile has extra time to travel forward while falling.',
+    concept: 'Elevated Launch Departure'
+  },
+  {
+    id: 'pv-7',
+    question: 'What changes when the projectile is launched from a height?',
+    answer: 'When launched from a height h > 0, the projectile lands at a level below its launch point (y = 0 while y0 = h). This alters the landing condition: time of flight must be solved from ½gt² - (u sin θ)t - h = 0, extending flight duration, increasing horizontal range, and shifting the maximum height above ground to H_ground = h + (u² sin²θ)/(2g).',
+    concept: 'Elevated Vertical Displacement'
+  },
+  {
+    id: 'pv-8',
+    question: 'Why does an elevated projectile generally remain in the air longer?',
+    answer: 'Because the projectile does not touch down when it returns to its launch elevation (y = h); it continues falling through the additional vertical distance h to reach the ground datum (y = 0), adding extra flight time Δt during which it continues traveling horizontally.',
+    concept: 'Extended Flight Duration'
+  },
+  {
+    id: 'pv-9',
+    question: 'What assumptions are made in ideal projectile motion?',
+    answer: 'The ideal model assumes: (1) Air resistance and aerodynamic drag are negligible, (2) Acceleration due to gravity g is constant in magnitude and direction (9.81 m/s²), (3) Earth curvature and rotational Coriolis effects are negligible, and (4) The projectile is treated as a point mass without aerodynamic lift or spin.',
     concept: 'Ideal Physical Assumptions'
   }
 ];

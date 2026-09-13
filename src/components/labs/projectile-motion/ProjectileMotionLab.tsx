@@ -18,6 +18,9 @@ import { RangeAngleGraph } from './RangeAngleGraph';
 import { ProjectileQuiz } from './ProjectileQuiz';
 import { ProjectileViva } from './ProjectileViva';
 import { ProjectileDoubt } from './ProjectileDoubt';
+import { ElevatedLaunchInvestigation } from './ElevatedLaunchInvestigation';
+import { WhatDidYouLearn } from './WhatDidYouLearn';
+import { SaveAttemptButton } from '../../common/SaveAttemptButton';
 import {
   ArrowLeft,
   BookOpen,
@@ -50,24 +53,30 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
   // Physical parameters state
   const [velocity, setVelocity] = useState<number>(PROJECTILE_MOTION_INFO.constants.defaultVelocity); // u in m/s
   const [angle, setAngle] = useState<number>(PROJECTILE_MOTION_INFO.constants.defaultAngle); // θ in degrees
+  const [launchHeight, setLaunchHeight] = useState<number>(0); // h in meters (0 for ground, 12 for assumed 4th floor)
   const G = PROJECTILE_MOTION_INFO.constants.g; // 9.81 m/s²
 
-  // Theoretical physics values (instantaneous based on selected u and θ)
+  // Theoretical physics values (instantaneous based on selected u, θ, and launchHeight h)
   const rad = (angle * Math.PI) / 180;
   const initialUx = velocity * Math.cos(rad);
   const initialUy = velocity * Math.sin(rad);
 
+  // Time of flight solving quadratic: y(t) = h + uy*t - 0.5*g*t^2 = 0
+  // t = (uy + sqrt(uy^2 + 2*g*h)) / g
   const timeOfFlight = useMemo(() => {
-    return (2 * velocity * Math.sin(rad)) / G;
-  }, [velocity, rad, G]);
+    const discriminant = (initialUy * initialUy) + (2 * G * launchHeight);
+    return (initialUy + Math.sqrt(Math.max(0, discriminant))) / G;
+  }, [initialUy, G, launchHeight]);
 
+  // Maximum height reached above ground level datum: h + (uy^2)/(2*g)
   const maxHeight = useMemo(() => {
-    return (velocity * velocity * Math.sin(rad) * Math.sin(rad)) / (2 * G);
-  }, [velocity, rad, G]);
+    return launchHeight + (initialUy * initialUy) / (2 * G);
+  }, [launchHeight, initialUy, G]);
 
+  // Horizontal range at impact with ground level datum: ux * timeOfFlight
   const theoreticalRange = useMemo(() => {
-    return (velocity * velocity * Math.sin(2 * rad)) / G;
-  }, [velocity, rad, G]);
+    return initialUx * timeOfFlight;
+  }, [initialUx, timeOfFlight]);
 
   // Simulation execution state
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -88,13 +97,15 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
   const animFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
 
-  // Update initial velocities when slider changes while idle
+  // Update initial velocities and height when slider changes while idle
   useEffect(() => {
     if (!isRunning && !isPaused && !isCompleted) {
       setCurrentVx(initialUx);
       setCurrentVy(initialUy);
+      setCurrentY(launchHeight);
+      setTrajectoryPoints([{ x: 0, y: launchHeight }]);
     }
-  }, [initialUx, initialUy, isRunning, isPaused, isCompleted]);
+  }, [initialUx, initialUy, launchHeight, isRunning, isPaused, isCompleted]);
 
   // Physics animation loop using requestAnimationFrame
   useEffect(() => {
@@ -121,19 +132,20 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
         if (nextT >= timeOfFlight) {
           // Touchdown achieved at ground datum (y = 0 m)
           const finalX = theoreticalRange;
+          const finalVy = initialUy - G * timeOfFlight;
           setCurrentX(finalX);
           setCurrentY(0);
           setCurrentVx(initialUx);
-          setCurrentVy(-initialUy);
+          setCurrentVy(finalVy);
           setIsRunning(false);
           setIsCompleted(true);
           setTrajectoryPoints((prev) => [...prev, { x: finalX, y: 0 }]);
           return timeOfFlight;
         }
 
-        // Mid-flight coordinates
+        // Mid-flight coordinates using y(t) = h + uy*t - 0.5*g*t^2
         const x = initialUx * nextT;
-        const y = Math.max(0, initialUy * nextT - 0.5 * G * nextT * nextT);
+        const y = Math.max(0, launchHeight + initialUy * nextT - 0.5 * G * nextT * nextT);
         const vx = initialUx;
         const vy = initialUy - G * nextT;
 
@@ -164,17 +176,17 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [isRunning, isPaused, timeOfFlight, theoreticalRange, initialUx, initialUy, G]);
+  }, [isRunning, isPaused, timeOfFlight, theoreticalRange, launchHeight, initialUx, initialUy, G]);
 
   // Control handlers
   const handleLaunch = () => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     setCurrentTime(0);
     setCurrentX(0);
-    setCurrentY(0);
+    setCurrentY(launchHeight);
     setCurrentVx(initialUx);
     setCurrentVy(initialUy);
-    setTrajectoryPoints([{ x: 0, y: 0 }]);
+    setTrajectoryPoints([{ x: 0, y: launchHeight }]);
     setIsCompleted(false);
     setIsPaused(false);
     setIsRunning(true);
@@ -197,23 +209,23 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
     setIsCompleted(false);
     setCurrentTime(0);
     setCurrentX(0);
-    setCurrentY(0);
+    setCurrentY(launchHeight);
     setCurrentVx(initialUx);
     setCurrentVy(initialUy);
-    setTrajectoryPoints([{ x: 0, y: 0 }]);
+    setTrajectoryPoints([{ x: 0, y: launchHeight }]);
   };
 
-  // Observation table state initialized with the standard 5-angle constant-velocity dataset (u = 20 m/s)
-  const [observations, setObservations] = useState<ProjectileObservation[]>(STANDARD_ANGLE_TRIALS);
+  // Observation table state initialized empty for the student to record their own attempts
+  const [observations, setObservations] = useState<ProjectileObservation[]>([]);
 
   // Reload standard 5-angle benchmark dataset (u = 20 m/s)
   const handleLoadStandardDataset = () => {
     setObservations(STANDARD_ANGLE_TRIALS);
   };
 
-  // Duplicate check (same velocity and angle)
+  // Duplicate check (same velocity, angle, and launch height)
   const isDuplicate = observations.some(
-    (obs) => obs.velocity === velocity && obs.angle === angle
+    (obs) => obs.velocity === velocity && obs.angle === angle && (obs.launchHeight || 0) === launchHeight
   );
 
   const handleRecordTrial = () => {
@@ -224,6 +236,7 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
       srNo: observations.length + 1,
       velocity,
       angle,
+      launchHeight,
       timeOfFlight: Number(timeOfFlight.toFixed(2)),
       maxHeight: Number(maxHeight.toFixed(2)),
       range: Number(currentX.toFixed(2)),
@@ -286,7 +299,7 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
 
             <div className="truncate">
               <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-indigo-600 block">
-                Experiment 04 &bull; Classes 11–12
+                Experiment 04 &bull; Class 11
               </span>
               <h1 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
                 Projectile Motion &bull; Range &amp; Trajectory
@@ -324,7 +337,7 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
             <div className="space-y-2 max-w-3xl">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 font-mono text-xs font-bold uppercase tracking-wider">
-                  EXPERIMENT 04 &bull; Classes 11–12
+                  EXPERIMENT 04 &bull; Class 11
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono text-xs font-semibold">
                   Mechanics &bull; Kinematics
@@ -488,6 +501,17 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
           </div>
         </div>
 
+        {/* ELEVATED LAUNCH INVESTIGATION (Different Height Study) */}
+        <ElevatedLaunchInvestigation
+          velocity={velocity}
+          angle={angle}
+          currentLaunchHeight={launchHeight}
+          onSetLaunchHeight={(h) => {
+            setLaunchHeight(h);
+            handleReset();
+          }}
+        />
+
         {/* 5. VIRTUAL LABORATORY SIMULATION WORKSPACE */}
         <div className="space-y-6">
           <div className="flex items-center justify-between pb-2">
@@ -498,7 +522,7 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
               </h3>
             </div>
             <span className="text-xs text-slate-500 font-mono">
-              Level Ground Launch Datum (y₀ = y = 0 m)
+              {launchHeight === 0 ? 'Level Ground Launch Datum (y₀ = y = 0 m)' : `Elevated Datum (y₀ = ${launchHeight.toFixed(1)} m)`}
             </span>
           </div>
 
@@ -509,6 +533,7 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
               <ProjectileCanvas
                 velocity={velocity}
                 angle={angle}
+                launchHeight={launchHeight}
                 currentTime={currentTime}
                 currentX={currentX}
                 currentY={currentY}
@@ -537,6 +562,11 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
                   setAngle(a);
                   handleReset();
                 }}
+                launchHeight={launchHeight}
+                onLaunchHeightChange={(h) => {
+                  setLaunchHeight(h);
+                  handleReset();
+                }}
                 isRunning={isRunning}
                 isPaused={isPaused}
                 isCompleted={isCompleted}
@@ -552,6 +582,8 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
               <ProjectileReadings
                 velocity={velocity}
                 angle={angle}
+                launchHeight={launchHeight}
+                gravity={G}
                 currentTime={currentTime}
                 currentX={currentX}
                 currentY={currentY}
@@ -581,6 +613,26 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
           observations={observations}
           currentVelocity={velocity}
         />
+
+        {/* SAVE EXPERIMENT PROGRESS FOR STUDENTS */}
+        <div className="flex justify-end pt-2 pb-2">
+          <SaveAttemptButton
+            experimentSlug="projectile-motion"
+            experimentTitle="Projectile Motion — Range & Trajectory"
+            inputs={{
+              velocity: `${velocity} m/s`,
+              angle: `${angle}°`,
+              launchHeight: `${launchHeight} m (${launchHeight === 0 ? 'Ground level datum' : 'Elevated launch / 4th-floor assumed'})`,
+              gravity: '9.81 m/s²',
+            }}
+            calculatedResults={{
+              timeOfFlight: `${timeOfFlight.toFixed(2)} s`,
+              horizontalRange: `${theoreticalRange.toFixed(2)} m`,
+              maxHeight: `${maxHeight.toFixed(2)} m`,
+            }}
+            observations={observations}
+          />
+        </div>
 
         {/* 8. VIRTUAL APPARATUS */}
         <div id="apparatus-section" className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs space-y-4">
@@ -685,16 +737,19 @@ export const ProjectileMotionLab: React.FC<ProjectileMotionLabProps> = ({
 
         </div>
 
-        {/* 11. FORMATIVE CONCEPT ASSESSMENT (QUIZ) */}
+        {/* 11. WHAT DID YOU LEARN? (CORE TAKEAWAYS) */}
+        <WhatDidYouLearn />
+
+        {/* 12. FORMATIVE CONCEPT ASSESSMENT (QUIZ) */}
         <ProjectileQuiz />
 
-        {/* 12. ORAL EXAM VIVA VOCE PRACTICE */}
+        {/* 13. ORAL EXAM VIVA VOCE PRACTICE */}
         <ProjectileViva />
 
-        {/* 13. STUDENT DOUBT & NOTEBOOK */}
+        {/* 14. STUDENT DOUBT & NOTEBOOK */}
         <ProjectileDoubt />
 
-        {/* 14. FOOTER INTER-LABORATORY NAVIGATION */}
+        {/* 15. FOOTER INTER-LABORATORY NAVIGATION */}
         <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
           <button
             onClick={onBack}

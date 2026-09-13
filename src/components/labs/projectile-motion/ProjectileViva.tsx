@@ -37,7 +37,7 @@ export const ProjectileViva: React.FC = () => {
             <span>Oral Exam &bull; Viva Voce Preparation</span>
           </div>
           <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-            Laboratory Viva Voce Practice (6 Core Questions)
+            Laboratory Viva Voce Practice ({PROJECTILE_VIVA.length} Core Questions)
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
             Key practical questions commonly posed during senior secondary board and university entrance physics assessments.

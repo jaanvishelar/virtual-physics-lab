@@ -4,6 +4,7 @@ import { Compass, Target, ArrowUpRight, Gauge, Activity, CheckCircle2 } from 'lu
 interface ProjectileCanvasProps {
   velocity: number; // u in m/s
   angle: number; // θ in degrees
+  launchHeight?: number; // h in meters (elevated launch investigation)
   currentTime: number; // t in seconds
   currentX: number; // x(t) in meters
   currentY: number; // y(t) in meters
@@ -21,6 +22,7 @@ interface ProjectileCanvasProps {
 export const ProjectileCanvas: React.FC<ProjectileCanvasProps> = ({
   velocity,
   angle,
+  launchHeight = 0,
   currentTime,
   currentX,
   currentY,
@@ -76,7 +78,7 @@ export const ProjectileCanvas: React.FC<ProjectileCanvasProps> = ({
     }, '');
   }, [trajectoryPoints, maxX, maxY, plotWidth, plotHeight]);
 
-  // Full theoretical parabolic curve for reference
+  // Full theoretical parabolic curve for reference (includes elevated launch height h)
   const fullTheoreticalPathD = useMemo(() => {
     const steps = 60;
     const rad = (angle * Math.PI) / 180;
@@ -87,22 +89,22 @@ export const ProjectileCanvas: React.FC<ProjectileCanvasProps> = ({
     for (let i = 0; i <= steps; i++) {
       const t = (timeOfFlight * i) / steps;
       const x = u * Math.cos(rad) * t;
-      const y = Math.max(0, u * Math.sin(rad) * t - 0.5 * g * t * t);
+      const y = Math.max(0, launchHeight + u * Math.sin(rad) * t - 0.5 * g * t * t);
       const sx = toSvgX(x).toFixed(1);
       const sy = toSvgY(y).toFixed(1);
       pts.push(i === 0 ? `M ${sx} ${sy}` : `L ${sx} ${sy}`);
     }
     return pts.join(' ');
-  }, [velocity, angle, timeOfFlight, maxX, maxY, plotWidth, plotHeight]);
+  }, [velocity, angle, launchHeight, timeOfFlight, maxX, maxY, plotWidth, plotHeight]);
 
-  // Cannon barrel geometry (pivot at origin x=0, y=0)
+  // Cannon barrel geometry (pivot at launch elevation)
   const barrelLength = 36;
   const rad = (angle * Math.PI) / 180;
   const muzzleX = toSvgX(0) + Math.cos(rad) * barrelLength;
-  const muzzleY = toSvgY(0) - Math.sin(rad) * barrelLength;
+  const muzzleY = toSvgY(launchHeight) - Math.sin(rad) * barrelLength;
 
-  // Maximum height coordinate
-  const apexX = theoreticalRange / 2;
+  // Maximum height coordinate: apex occurs when vy = 0 => t = u*sin(θ)/g
+  const apexX = (velocity * Math.cos(rad) * (velocity * Math.sin(rad))) / 9.81;
   const apexY = maxHeight;
 
   return (
@@ -426,15 +428,53 @@ export const ProjectileCanvas: React.FC<ProjectileCanvasProps> = ({
             </g>
           )}
 
-          {/* Cannon Launcher Assembly at Origin (0, 0) */}
+          {/* Elevated Launch Tower (if launchHeight > 0) */}
+          {launchHeight > 0 && (
+            <g>
+              {/* Pillar / Building Structure */}
+              <rect
+                x={toSvgX(0) - 22}
+                y={toSvgY(launchHeight)}
+                width="24"
+                height={Math.max(2, toSvgY(0) - toSvgY(launchHeight))}
+                fill="#1e293b"
+                stroke="#475569"
+                strokeWidth="1.5"
+                rx="3"
+              />
+              {/* Floor levels accent */}
+              <line
+                x1={toSvgX(0) - 22}
+                y1={toSvgY(launchHeight)}
+                x2={toSvgX(0) + 2}
+                y2={toSvgY(launchHeight)}
+                stroke="#f59e0b"
+                strokeWidth="2"
+              />
+              {/* Elevation Height Indicator */}
+              <text
+                x={toSvgX(0) - 30}
+                y={toSvgY(launchHeight / 2) + 3}
+                fill="#fbbf24"
+                fontSize="9"
+                fontFamily="monospace"
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                h={launchHeight.toFixed(0)}m
+              </text>
+            </g>
+          )}
+
+          {/* Cannon Launcher Assembly at Origin (0, launchHeight) */}
           <g>
             {/* Cannon Stand Base */}
             <polygon
               points={`
-                ${toSvgX(0) - 18},${toSvgY(0)}
-                ${toSvgX(0) + 18},${toSvgY(0)}
-                ${toSvgX(0) + 10},${toSvgY(0) - 14}
-                ${toSvgX(0) - 10},${toSvgY(0) - 14}
+                ${toSvgX(0) - 16},${toSvgY(launchHeight)}
+                ${toSvgX(0) + 16},${toSvgY(launchHeight)}
+                ${toSvgX(0) + 8},${toSvgY(launchHeight) - 12}
+                ${toSvgX(0) - 8},${toSvgY(launchHeight) - 12}
               `}
               fill="url(#cannonMetal)"
               stroke="#64748b"
@@ -444,8 +484,8 @@ export const ProjectileCanvas: React.FC<ProjectileCanvasProps> = ({
             {/* Protractor Angle Arc */}
             <path
               d={`
-                M ${toSvgX(0) + 26} ${toSvgY(0)}
-                A 26 26 0 0 0 ${toSvgX(0) + 26 * Math.cos(rad)} ${toSvgY(0) - 26 * Math.sin(rad)}
+                M ${toSvgX(0) + 26} ${toSvgY(launchHeight)}
+                A 26 26 0 0 0 ${toSvgX(0) + 26 * Math.cos(rad)} ${toSvgY(launchHeight) - 26 * Math.sin(rad)}
               `}
               fill="none"
               stroke="#fbbf24"
@@ -455,7 +495,7 @@ export const ProjectileCanvas: React.FC<ProjectileCanvasProps> = ({
             {/* Angle Indicator Tag */}
             <text
               x={toSvgX(0) + 32 * Math.cos(rad / 2)}
-              y={toSvgY(0) - 32 * Math.sin(rad / 2) - 2}
+              y={toSvgY(launchHeight) - 32 * Math.sin(rad / 2) - 2}
               fill="#fbbf24"
               fontSize="9"
               fontFamily="monospace"
@@ -466,7 +506,7 @@ export const ProjectileCanvas: React.FC<ProjectileCanvasProps> = ({
 
             {/* Swiveling Cannon Barrel */}
             <g
-              transform={`translate(${toSvgX(0)}, ${toSvgY(0)}) rotate(${-angle})`}
+              transform={`translate(${toSvgX(0)}, ${toSvgY(launchHeight)}) rotate(${-angle})`}
             >
               <rect
                 x="0"
@@ -491,7 +531,7 @@ export const ProjectileCanvas: React.FC<ProjectileCanvasProps> = ({
             {/* Pivot Wheel */}
             <circle
               cx={toSvgX(0)}
-              cy={toSvgY(0)}
+              cy={toSvgY(launchHeight)}
               r="7"
               fill="#334155"
               stroke="#94a3b8"
@@ -499,7 +539,7 @@ export const ProjectileCanvas: React.FC<ProjectileCanvasProps> = ({
             />
             <circle
               cx={toSvgX(0)}
-              cy={toSvgY(0)}
+              cy={toSvgY(launchHeight)}
               r="2"
               fill="#ffffff"
             />

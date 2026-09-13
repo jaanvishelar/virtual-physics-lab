@@ -4,22 +4,24 @@ export interface Experiment {
   slug: string;
   title: string;
   classes: string;
+  standard?: 9 | 10 | 11 | 12;
+  status?: 'available' | 'coming-soon';
   category: string;
   description: string;
   aim: string;
   formula: string;
   formulaMeaning: string;
   apparatus: string[];
-  variables: {
+  variables?: {
     independent: string;
     dependent: string;
     controlled: string;
   };
-  observationHeaders: string[];
-  sampleObservations: Array<Record<string, string>>;
-  graphType: string;
-  precautions: string[];
-  vivaQuestions: Array<{ q: string; a: string }>;
+  observationHeaders?: string[];
+  sampleObservations?: Array<Record<string, string>>;
+  graphType?: string;
+  precautions?: string[];
+  vivaQuestions?: Array<{ q: string; a: string }>;
 }
 
 export interface WorkflowStep {
@@ -91,6 +93,8 @@ export interface ProjectileObservation {
   srNo: number;
   velocity: number; // initial velocity u in m/s
   angle: number; // projection angle θ in degrees
+  launchHeight?: number; // launch height h in m (0 = ground, >0 = elevated)
+  isElevated?: boolean;
   timeOfFlight: number; // T in s
   maxHeight: number; // H in m
   range: number; // R in m
@@ -133,4 +137,44 @@ export interface ApparatusDetail {
   spec: string;
 }
 
-export type ActiveNavSection = 'home' | 'labs' | 'how-it-works' | 'mentoring' | 'resources' | 'about' | 'feedback';
+export type UserRole = 'student' | 'teacher';
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  classGrade?: string; // e.g. "Class 9", "Class 10", "Class 11", "Class 12"
+  division?: string;   // e.g. "A", "B", "C"
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface ExperimentSubmission {
+  id?: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  classGrade: string;
+  division: string;
+  experimentSlug: string;
+  experimentTitle: string;
+  attemptNumber: number;
+  inputs: Record<string, number | string | boolean>;
+  calculatedResults: Record<string, number | string>;
+  observations?: Array<Record<string, any>>;
+  notes?: string;
+  submittedAt: string; // ISO string
+}
+
+export type ActiveNavSection = 
+  | 'home' 
+  | 'labs' 
+  | 'how-it-works' 
+  | 'mentoring' 
+  | 'resources' 
+  | 'about' 
+  | 'feedback'
+  | 'student-dashboard'
+  | 'teacher-dashboard'
+  | 'login'
+  | 'register';

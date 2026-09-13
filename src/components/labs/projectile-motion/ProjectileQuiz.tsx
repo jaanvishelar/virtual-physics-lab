@@ -43,7 +43,7 @@ export const ProjectileQuiz: React.FC = () => {
             <span>Formative Concept Assessment</span>
           </div>
           <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-            Projectile Motion Concept Quiz (5 Questions)
+            Projectile Motion Concept Quiz ({PROJECTILE_QUIZ.length} Questions)
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
             Evaluate your understanding of parabolic trajectories, velocity decomposition, time of flight, and optimal range angles.

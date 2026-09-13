@@ -1,12 +1,66 @@
 import { Experiment } from '../types';
 
 export const EXPERIMENTS: Experiment[] = [
+  // 1. CLASS 9: Hooke's Law & Spring Constant
   {
     id: 'exp-01',
     number: '01',
+    slug: 'hookes-law',
+    title: "Hooke's Law & Spring Constant",
+    classes: 'Class 9',
+    standard: 9,
+    status: 'available',
+    category: 'Elasticity & Material Properties',
+    description:
+      'Investigate the relationship between load suspended from a helical spring and the resulting elongation within its elastic limit, and determine spring constant k.',
+    aim: 'To determine the spring constant (k) of a helical spring by plotting a load versus extension graph (F vs x).',
+    formula: 'F = k · x  ⇒  k = ΔF / Δx = (Δm · g) / Δx',
+    formulaMeaning: 'F = Applied force (N), k = Spring stiffness constant (N/m), x = Extension produced in spring (m), m = Suspended mass (kg), g = 9.81 m/s²',
+    apparatus: [
+      'Virtual Helical Spring',
+      'Virtual Rigid Stand',
+      'Slotted Mass Selector',
+      'Virtual Millimeter Scale',
+      'Deflection Pointer'
+    ],
+    variables: {
+      independent: 'Mass added to hanger (m in grams/kg)',
+      dependent: 'Extension / elongation of spring (x in cm/meters)',
+      controlled: 'Spring material, initial unloaded equilibrium length, ambient temperature'
+    },
+    observationHeaders: ['Load on Hanger m (g)', 'Pointer Reading Loading (cm)', 'Pointer Reading Unloading (cm)', 'Mean Reading (cm)', 'Extension x (cm)', 'k = mg/x (N/m)'],
+    sampleObservations: [
+      { 'Load on Hanger m (g)': '50', 'Pointer Reading Loading (cm)': '14.2', 'Pointer Reading Unloading (cm)': '14.2', 'Mean Reading (cm)': '14.2', 'Extension x (cm)': '2.1', 'k = mg/x (N/m)': '23.3' },
+      { 'Load on Hanger m (g)': '100', 'Pointer Reading Loading (cm)': '16.3', 'Pointer Reading Unloading (cm)': '16.3', 'Mean Reading (cm)': '16.3', 'Extension x (cm)': '4.2', 'k = mg/x (N/m)': '23.3' },
+      { 'Load on Hanger m (g)': '150', 'Pointer Reading Loading (cm)': '18.4', 'Pointer Reading Unloading (cm)': '18.4', 'Mean Reading (cm)': '18.4', 'Extension x (cm)': '6.3', 'k = mg/x (N/m)': '23.3' }
+    ],
+    graphType: 'Load (F) vs Extension (x) straight line graph passing through origin (slope = spring constant k)',
+    precautions: [
+      'Do not load the spring beyond its elastic limit, which would cause permanent deformation.',
+      'Record pointer readings both during progressive loading and unloading to verify absence of hysteresis.',
+      'Ensure the pointer moves freely along the scale without scraping against the ruler.'
+    ],
+    vivaQuestions: [
+      {
+        q: 'What is the elastic limit of a spring?',
+        a: 'The maximum stress or tensile force that a spring can withstand without suffering permanent plastic deformation.'
+      },
+      {
+        q: 'What does the slope of a Force vs Extension graph represent?',
+        a: 'The slope (ΔF / Δx) represents the spring constant k (stiffness) in Newtons per meter.'
+      }
+    ]
+  },
+
+  // 2. CLASS 11: Ohm's Law & Resistance
+  {
+    id: 'exp-02',
+    number: '02',
     slug: 'ohms-law',
     title: "Ohm's Law & Resistance",
-    classes: 'Classes 9–12',
+    classes: 'Class 11',
+    standard: 11,
+    status: 'available',
     category: 'Current Electricity & Circuitry',
     description:
       'Verify the direct proportionality between potential difference and electric current through a conductor at constant temperature, and calculate resistance.',
@@ -51,12 +105,16 @@ export const EXPERIMENTS: Experiment[] = [
       }
     ]
   },
+
+  // 3. CLASS 11: Simple Pendulum & Acceleration Due to Gravity
   {
-    id: 'exp-02',
-    number: '02',
+    id: 'exp-03',
+    number: '03',
     slug: 'simple-pendulum',
     title: 'Simple Pendulum & Acceleration Due to Gravity',
-    classes: 'Classes 9–11',
+    classes: 'Class 11',
+    standard: 11,
+    status: 'available',
     category: 'Mechanics & Oscillations',
     description:
       'Determine the acceleration due to gravity (g) using a simple pendulum simulation and analyze the T²–L relationship to estimate the experimental value of g.',
@@ -99,59 +157,16 @@ export const EXPERIMENTS: Experiment[] = [
       }
     ]
   },
-  {
-    id: 'exp-03',
-    number: '03',
-    slug: 'hookes-law',
-    title: "Hooke's Law & Spring Constant",
-    classes: 'Classes 9–11',
-    category: 'Elasticity & Material Properties',
-    description:
-      'Investigate the relationship between load suspended from a helical spring and the resulting elongation within its elastic limit, and determine spring constant k.',
-    aim: 'To determine the spring constant (k) of a helical spring by plotting a load versus extension graph (F vs x).',
-    formula: 'F = k · x  ⇒  k = ΔF / Δx = (Δm · g) / Δx',
-    formulaMeaning: 'F = Applied force (N), k = Spring stiffness constant (N/m), x = Extension produced in spring (m), m = Suspended mass (kg), g = 9.81 m/s²',
-    apparatus: [
-      'Virtual Helical Spring',
-      'Virtual Rigid Stand',
-      'Slotted Mass Selector',
-      'Virtual Millimeter Scale',
-      'Deflection Pointer'
-    ],
-    variables: {
-      independent: 'Mass added to hanger (m in grams/kg)',
-      dependent: 'Extension / elongation of spring (x in cm/meters)',
-      controlled: 'Spring material, initial unloaded equilibrium length, ambient temperature'
-    },
-    observationHeaders: ['Load on Hanger m (g)', 'Pointer Reading Loading (cm)', 'Pointer Reading Unloading (cm)', 'Mean Reading (cm)', 'Extension x (cm)', 'k = mg/x (N/m)'],
-    sampleObservations: [
-      { 'Load on Hanger m (g)': '50', 'Pointer Reading Loading (cm)': '14.2', 'Pointer Reading Unloading (cm)': '14.2', 'Mean Reading (cm)': '14.2', 'Extension x (cm)': '2.1', 'k = mg/x (N/m)': '23.3' },
-      { 'Load on Hanger m (g)': '100', 'Pointer Reading Loading (cm)': '16.3', 'Pointer Reading Unloading (cm)': '16.3', 'Mean Reading (cm)': '16.3', 'Extension x (cm)': '4.2', 'k = mg/x (N/m)': '23.3' },
-      { 'Load on Hanger m (g)': '150', 'Pointer Reading Loading (cm)': '18.4', 'Pointer Reading Unloading (cm)': '18.4', 'Mean Reading (cm)': '18.4', 'Extension x (cm)': '6.3', 'k = mg/x (N/m)': '23.3' }
-    ],
-    graphType: 'Load (F) vs Extension (x) straight line graph passing through origin (slope = spring constant k)',
-    precautions: [
-      'Do not load the spring beyond its elastic limit, which would cause permanent deformation.',
-      'Record pointer readings both during progressive loading and unloading to verify absence of hysteresis.',
-      'Ensure the pointer moves freely along the scale without scraping against the ruler.'
-    ],
-    vivaQuestions: [
-      {
-        q: 'What is the elastic limit of a spring?',
-        a: 'The maximum stress or tensile force that a spring can withstand without suffering permanent plastic deformation.'
-      },
-      {
-        q: 'What does the slope of a Force vs Extension graph represent?',
-        a: 'The slope (ΔF / Δx) represents the spring constant k (stiffness) in Newtons per meter.'
-      }
-    ]
-  },
+
+  // 4. CLASS 11: Projectile Motion — Range & Trajectory
   {
     id: 'exp-04',
     number: '04',
     slug: 'projectile-motion',
     title: 'Projectile Motion — Range & Trajectory',
-    classes: 'Classes 11–12',
+    classes: 'Class 11',
+    standard: 11,
+    status: 'available',
     category: 'Mechanics • Kinematics',
     description:
       'Analyze two-dimensional parabolic trajectory under constant gravity (g = 9.81 m/s²), relating launch angle and initial velocity to time of flight, maximum height, and horizontal range.',
@@ -196,12 +211,16 @@ export const EXPERIMENTS: Experiment[] = [
       }
     ]
   },
+
+  // 5. CLASS 12: Convex Lens & Focal Length
   {
     id: 'exp-05',
     number: '05',
     slug: 'convex-lens',
     title: 'Convex Lens & Focal Length',
-    classes: 'Classes 10–12',
+    classes: 'Class 12',
+    standard: 12,
+    status: 'available',
     category: 'Ray Optics',
     description:
       'Determine the focal length of a convex lens by measuring object distance (u) and image distance (v), and verify the lens formula.',
