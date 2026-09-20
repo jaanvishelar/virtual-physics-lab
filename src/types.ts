@@ -44,7 +44,11 @@ export interface ReferenceItem {
   details: {
     overview: string;
     keyPoints: string[];
-    sampleFormulasOrData?: Array<{ label: string; value: string; unit?: string }>;
+    sampleFormulasOrData?: Array<{
+      label: string;
+      value: string;
+      unit?: string;
+    }>;
   };
 }
 
@@ -52,7 +56,13 @@ export interface DoubtDraft {
   studentName?: string;
   studentClass: string;
   experimentTopic: string;
-  doubtCategory: 'Formula Application' | 'Graph Interpretation' | 'Apparatus Zero Error' | 'Observation Anomaly' | 'Calculation Steps' | 'General Practical Theory';
+  doubtCategory:
+    | 'Formula Application'
+    | 'Graph Interpretation'
+    | 'Apparatus Zero Error'
+    | 'Observation Anomaly'
+    | 'Calculation Steps'
+    | 'General Practical Theory';
   description: string;
 }
 
@@ -68,11 +78,20 @@ export interface ObservationReading {
 export interface PendulumObservation {
   id: string;
   srNo: number;
+
+  // Experimental location
   location: 'Ground' | '4th Floor';
-  height: number;
+  height: number; // Height above ground in metres
+
+  // Pendulum parameters
   length: number; // L in metres
   oscillations: number; // N
-  time: number; // total time t in seconds
+  time: number; // Total time t in seconds
+
+  // Calculated quantities
+  period: number; // T = t / N in seconds
+  periodSquared: number; // T² in seconds²
+
   timestamp: number;
 }
 
@@ -91,9 +110,9 @@ export interface HookeObservation {
 export interface ProjectileObservation {
   id: string;
   srNo: number;
-  velocity: number; // initial velocity u in m/s
-  angle: number; // projection angle θ in degrees
-  launchHeight?: number; // launch height h in m (0 = ground, >0 = elevated)
+  velocity: number; // Initial velocity u in m/s
+  angle: number; // Projection angle θ in degrees
+  launchHeight?: number; // Launch height h in m (0 = ground, >0 = elevated)
   isElevated?: boolean;
   timeOfFlight: number; // T in s
   maxHeight: number; // H in m
@@ -104,8 +123,8 @@ export interface ProjectileObservation {
 export interface ConvexLensObservation {
   id: string;
   trialNo: number;
-  u: number; // signed object distance in cm (e.g. -60)
-  v: number; // signed image distance in cm (e.g. +30)
+  u: number; // Signed object distance in cm (e.g. -60)
+  v: number; // Signed image distance in cm (e.g. +30)
   oneOverU: number; // 1/u in cm⁻¹
   oneOverV: number; // 1/v in cm⁻¹
   focalLength: number; // f in cm calculated from 1 / (1/v - 1/u)
@@ -133,7 +152,12 @@ export interface ApparatusDetail {
   id: string;
   name: string;
   role: string;
-  connectionType: 'Series' | 'Parallel' | 'Power' | 'Control' | 'Conductor';
+  connectionType:
+    | 'Series'
+    | 'Parallel'
+    | 'Power'
+    | 'Control'
+    | 'Conductor';
   spec: string;
 }
 
@@ -144,7 +168,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   classGrade?: string; // e.g. "Class 9", "Class 10", "Class 11", "Class 12"
-  division?: string;   // e.g. "A", "B", "C"
+  division?: string; // e.g. "A", "B", "C"
   role: UserRole;
   createdAt: string;
 }
@@ -166,13 +190,13 @@ export interface ExperimentSubmission {
   submittedAt: string; // ISO string
 }
 
-export type ActiveNavSection = 
-  | 'home' 
-  | 'labs' 
-  | 'how-it-works' 
-  | 'mentoring' 
-  | 'resources' 
-  | 'about' 
+export type ActiveNavSection =
+  | 'home'
+  | 'labs'
+  | 'how-it-works'
+  | 'mentoring'
+  | 'resources'
+  | 'about'
   | 'feedback'
   | 'student-dashboard'
   | 'teacher-dashboard'
