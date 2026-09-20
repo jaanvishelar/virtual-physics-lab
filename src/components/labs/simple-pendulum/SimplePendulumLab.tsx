@@ -27,7 +27,8 @@ import {
   Sparkles,
   ChevronRight,
   Activity,
-  Award
+  Award,
+  Building2,
 } from 'lucide-react';
 
 interface SimplePendulumLabProps {
@@ -46,6 +47,28 @@ export const SimplePendulumLab: React.FC<SimplePendulumLabProps> = ({
   const [initialAngle, setInitialAngle] = useState<number>(10.0); // Default 10°
   const [targetOscillations, setTargetOscillations] = useState<number>(10); // Default 10
 
+  // Experimental Location state
+  const [location, setLocation] = useState<'ground' | 'fourthFloor'>('ground');
+
+  // Earth constants & Altitude Gravity Calculation
+  const EARTH_RADIUS = 6.371e6;
+  const GROUND_GRAVITY = 9.81;
+
+  const locationHeight = location === 'ground' ? 0 : 15;
+
+  const G_THEORETICAL =
+    GROUND_GRAVITY *
+    Math.pow(
+      EARTH_RADIUS / (EARTH_RADIUS + locationHeight),
+      2
+    );
+
+  // Theoretical period T = 2π√(L/g) using local g(h)
+  const currentTheoreticalPeriod =
+    2 * Math.PI * Math.sqrt(
+      length / G_THEORETICAL
+    );
+
   // Simulation execution state
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isCompleted, setIsCompleted] = useState<boolean>(false);
@@ -63,10 +86,6 @@ export const SimplePendulumLab: React.FC<SimplePendulumLabProps> = ({
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const pausedElapsedRef = useRef<number>(0);
-
-  // Theoretical period T = 2π√(L/g) where g = 9.81 m/s²
-  const G_THEORETICAL = 9.81;
-  const currentTheoreticalPeriod = 2 * Math.PI * Math.sqrt(length / G_THEORETICAL);
 
   // Animation and oscillation loop
   useEffect(() => {
@@ -176,6 +195,18 @@ export const SimplePendulumLab: React.FC<SimplePendulumLabProps> = ({
     pausedElapsedRef.current = 0;
   };
 
+  const handleLocationChange = (newLocation: 'ground' | 'fourthFloor') => {
+    if (isRunning) return;
+    setLocation(newLocation);
+    setIsRunning(false);
+    setIsCompleted(false);
+    setHasRecordedCurrent(false);
+    pausedElapsedRef.current = 0;
+    setMeasuredTime(0);
+    setOscillations(0);
+    setCurrentAngle(initialAngle);
+  };
+
   const handleRecordReading = () => {
     if (!isCompleted || hasRecordedCurrent) return;
 
@@ -185,6 +216,8 @@ export const SimplePendulumLab: React.FC<SimplePendulumLabProps> = ({
     const newObservation: PendulumObservation = {
       id: `obs-p-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       srNo: observations.length + 1,
+      location: location === 'ground' ? 'Ground' : '4th Floor',
+      height: locationHeight,
       length: Number(length.toFixed(2)),
       oscillations: targetOscillations,
       time: Number(measuredTime.toFixed(3)),
@@ -424,6 +457,63 @@ export const SimplePendulumLab: React.FC<SimplePendulumLabProps> = ({
 
             {/* Right: Controls & Real-Time Instrument Readings */}
             <div className="lg:col-span-5 space-y-6">
+              {/* Experimental Location Card */}
+              <div id="pendulum-location-card" className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-indigo-600" />
+                    <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                      Experimental Location
+                    </h3>
+                  </div>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-semibold">
+                    h = {locationHeight} m
+                  </span>
+                </div>
+
+                <div className="space-y-3.5">
+                  <div>
+                    <label htmlFor="location-select" className="sr-only">
+                      Experimental Location
+                    </label>
+                    <select
+                      id="location-select"
+                      value={location}
+                      disabled={isRunning}
+                      onChange={(e) => handleLocationChange(e.target.value as 'ground' | 'fourthFloor')}
+                      className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-300 bg-white font-mono text-xs font-semibold text-slate-800 shadow-2xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all ${
+                        isRunning ? 'opacity-60 cursor-not-allowed bg-slate-100' : 'cursor-pointer hover:border-slate-400'
+                      }`}
+                    >
+                      <option value="ground">Ground Level — 0 m</option>
+                      <option value="fourthFloor">4th Floor — approximately 15 m</option>
+                    </select>
+                    {isRunning && (
+                      <p className="text-[10px] font-mono text-amber-600 mt-1">
+                        Cannot change location while measurement is running.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 font-mono text-xs space-y-1.5">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Height:</span>
+                      <span className="font-bold text-slate-900">{locationHeight} m</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Local g:</span>
+                      <span className="font-bold text-indigo-700">{G_THEORETICAL.toFixed(6)} m/s²</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Theoretical T:</span>
+                      <span className="font-bold text-emerald-700">
+                        {location === 'fourthFloor' ? `approximately ${currentTheoreticalPeriod.toFixed(3)} s` : `${currentTheoreticalPeriod.toFixed(3)} s`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Actuators & Experiment Controls */}
               <PendulumControls
                 length={length}
@@ -480,10 +570,13 @@ export const SimplePendulumLab: React.FC<SimplePendulumLabProps> = ({
             experimentSlug="simple-pendulum"
             experimentTitle="Determination of 'g' using Simple Pendulum (L vs T² Graph)"
             inputs={{
+              location: location === 'ground' ? 'Ground' : '4th Floor',
+              height: `${locationHeight} m`,
+              theoreticalGravity: `${G_THEORETICAL.toFixed(6)} m/s²`,
+              theoreticalPeriod: `${currentTheoreticalPeriod.toFixed(3)} s`,
               effectiveLength: `${(length * 100).toFixed(1)} cm (${length.toFixed(2)} m)`,
               initialAmplitude: `${initialAngle}°`,
               targetOscillations: `${targetOscillations}`,
-              theoreticalGravity: `${G_THEORETICAL} m/s²`,
             }}
             calculatedResults={{
               theoreticalPeriod: `${currentTheoreticalPeriod.toFixed(3)} s`,

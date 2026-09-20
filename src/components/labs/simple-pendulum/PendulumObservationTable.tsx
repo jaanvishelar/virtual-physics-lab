@@ -87,13 +87,15 @@ export const PendulumObservationTable: React.FC<PendulumObservationTableProps> =
         <table className="w-full text-left text-xs sm:text-sm font-sans divide-y divide-slate-200">
           <thead className="bg-slate-50 font-mono text-xs uppercase text-slate-600 font-bold tracking-wider">
             <tr>
-              <th scope="col" className="px-4 py-3.5 text-center">Sr. No.</th>
-              <th scope="col" className="px-4 py-3.5">Length L (m)</th>
-              <th scope="col" className="px-4 py-3.5">Oscillations N</th>
-              <th scope="col" className="px-4 py-3.5">Total Time t (s)</th>
-              <th scope="col" className="px-4 py-3.5">Time Period T (s)</th>
-              <th scope="col" className="px-4 py-3.5">T² (s²)</th>
-              <th scope="col" className="px-4 py-3.5 text-center">Action</th>
+              <th scope="col" className="px-3 py-3.5 text-center">Sr.</th>
+              <th scope="col" className="px-3.5 py-3.5">Location</th>
+              <th scope="col" className="px-3 py-3.5 text-right">Height h (m)</th>
+              <th scope="col" className="px-3.5 py-3.5 text-right">Length L (m)</th>
+              <th scope="col" className="px-3 py-3.5 text-center">N</th>
+              <th scope="col" className="px-3.5 py-3.5 text-right">Time t (s)</th>
+              <th scope="col" className="px-3.5 py-3.5 text-right">T (s)</th>
+              <th scope="col" className="px-3.5 py-3.5 text-right">T² (s²)</th>
+              <th scope="col" className="px-3 py-3.5 text-center">Action</th>
             </tr>
           </thead>
 
@@ -101,28 +103,44 @@ export const PendulumObservationTable: React.FC<PendulumObservationTableProps> =
             {observations.length > 0 ? (
               observations.map((obs, idx) => (
                 <tr key={obs.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-4 py-3 text-center text-slate-400 font-semibold">
+                  <td className="px-3 py-3 text-center text-slate-400 font-semibold">
                     {idx + 1}
                   </td>
-                  <td className="px-4 py-3 font-bold text-indigo-700">
+                  <td className="px-3.5 py-3">
+                    {obs.location === 'Ground' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        Ground
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                        4th Floor
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 text-right text-slate-600 font-semibold">
+                    {obs.height}
+                  </td>
+                  <td className="px-3.5 py-3 text-right font-bold text-indigo-700">
                     {obs.length.toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 text-slate-700 font-semibold">
+                  <td className="px-3 py-3 text-center text-slate-700 font-semibold">
                     {obs.oscillations}
                   </td>
-                  <td className="px-4 py-3 text-emerald-700 font-semibold">
+                  <td className="px-3.5 py-3 text-right text-emerald-700 font-semibold">
                     {obs.time.toFixed(3)}
                   </td>
-                  <td className="px-4 py-3 text-amber-700 font-bold">
+                  <td className="px-3.5 py-3 text-right text-amber-700 font-bold">
                     {obs.period.toFixed(3)}
                   </td>
-                  <td className="px-4 py-3 font-extrabold text-sky-700">
+                  <td className="px-3.5 py-3 text-right font-extrabold text-sky-700">
                     {obs.periodSquared.toFixed(3)}
                   </td>
-                  <td className="px-4 py-3 text-center">
+                  <td className="px-3 py-3 text-center">
                     <button
                       onClick={() => onDeleteObservation(obs.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                       title="Delete observation"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -132,13 +150,13 @@ export const PendulumObservationTable: React.FC<PendulumObservationTableProps> =
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                   <div className="max-w-md mx-auto space-y-2">
                     <p className="font-semibold text-slate-600">
                       No experimental observations recorded yet.
                     </p>
                     <p className="text-xs text-slate-500 font-sans">
-                      Select a pendulum length (e.g., 0.40 m, 0.60 m, 0.80 m), click <strong>START</strong> on the controls panel, wait for N oscillations to complete, and click <strong>Record Reading</strong>.
+                      Select an experimental location and pendulum length (e.g., 0.40 m, 0.60 m, 0.80 m), click <strong>START</strong> on the controls panel, wait for N oscillations to complete, and click <strong>Record Reading</strong>.
                     </p>
                   </div>
                 </td>

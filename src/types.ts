@@ -68,11 +68,11 @@ export interface ObservationReading {
 export interface PendulumObservation {
   id: string;
   srNo: number;
+  location: 'Ground' | '4th Floor';
+  height: number;
   length: number; // L in metres
   oscillations: number; // N
   time: number; // total time t in seconds
-  period: number; // T = t / N in seconds
-  periodSquared: number; // T² in s²
   timestamp: number;
 }
 
