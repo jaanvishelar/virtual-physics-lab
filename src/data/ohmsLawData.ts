@@ -1,4 +1,118 @@
-import { ApparatusDetail, QuizQuestion, VivaQuestionItem } from '../types';
+import { ApparatusDetail, QuizQuestion, VivaQuestionItem, OhmsLawMode } from '../types';
+
+export interface OhmsModeConfig {
+  id: OhmsLawMode;
+  name: string;
+  shortName: string;
+  tag: string;
+  formula: string;
+  formulaNote: string;
+  badge: string;
+  objective: string;
+  theorySummary: string;
+  independentVariables: string;
+  dependentVariable: string;
+  graphTitle: string;
+  graphSubtitle: string;
+  xAxisLabel: string;
+  xAxisUnit: string;
+  yAxisLabel: string;
+  yAxisUnit: string;
+  slopeLabel: string;
+  slopeUnit: string;
+  slopeExplanation: string;
+  presets: Array<{ label: string; v: number; i: number; r: number; note: string }>;
+}
+
+export const OHMS_LAW_MODES: Record<OhmsLawMode, OhmsModeConfig> = {
+  'find-current': {
+    id: 'find-current',
+    name: 'Mode 1: Find Current',
+    shortName: 'Find Current',
+    tag: 'I = V / R',
+    formula: 'I = V / R',
+    formulaNote: 'Calculates the resulting current when voltage and resistance are known.',
+    badge: 'Current Investigation',
+    objective: 'Investigate how current varies when potential difference (V) and resistance (R) are adjusted, and observe the linear relationship when resistance is held constant.',
+    theorySummary: 'According to Ohm\'s Law, the current I passing through a conductor is directly proportional to the applied potential difference V and inversely proportional to its resistance R. Keeping R constant produces a straight line where current increases linearly with voltage.',
+    independentVariables: 'Potential Difference V (V) & Resistance R (Ω)',
+    dependentVariable: 'Calculated Current I (A)',
+    graphTitle: 'Current (Y) vs Potential Difference (X)',
+    graphSubtitle: 'Plotting I (A) versus V (V). Note: Keep Resistance R constant across trials to interpret the slope.',
+    xAxisLabel: 'Potential Difference V',
+    xAxisUnit: 'V',
+    yAxisLabel: 'Electric Current I',
+    yAxisUnit: 'A',
+    slopeLabel: 'Conductance (ΔI / ΔV = 1/R)',
+    slopeUnit: 'S (A/V)',
+    slopeExplanation: 'On an I vs V graph, the slope ΔI / ΔV represents the electrical conductance G = 1/R. Resistance is obtained as R = 1 / slope. For the slope to have physical meaning, the test resistance must remain constant across recorded observations.',
+    presets: [
+      { label: 'Trial 1 (2V, 10Ω)', v: 2.0, i: 0.2, r: 10.0, note: 'R = 10 Ω constant' },
+      { label: 'Trial 2 (4V, 10Ω)', v: 4.0, i: 0.4, r: 10.0, note: 'R = 10 Ω constant' },
+      { label: 'Trial 3 (6V, 10Ω)', v: 6.0, i: 0.6, r: 10.0, note: 'R = 10 Ω constant' },
+      { label: 'Trial 4 (8V, 10Ω)', v: 8.0, i: 0.8, r: 10.0, note: 'R = 10 Ω constant' },
+      { label: 'Trial 5 (10V, 10Ω)', v: 10.0, i: 1.0, r: 10.0, note: 'R = 10 Ω constant' },
+    ],
+  },
+  'find-resistance': {
+    id: 'find-resistance',
+    name: 'Mode 2: Find Resistance',
+    shortName: 'Find Resistance',
+    tag: 'R = V / I',
+    formula: 'R = V / I',
+    formulaNote: 'Calculates the conductor resistance from observed potential difference and measured current.',
+    badge: 'Resistance Determination',
+    objective: 'Determine conductor resistance by varying voltage and current independently, plotting the classic V-I characteristic curve where the slope represents resistance R.',
+    theorySummary: 'The resistance of an ohmic conductor is the ratio of the potential difference across it to the current flowing through it (R = V / I). A plot of V against I forms a straight line passing through the origin whose gradient equals the resistance.',
+    independentVariables: 'Potential Difference V (V) & Electric Current I (A)',
+    dependentVariable: 'Calculated Resistance R (Ω)',
+    graphTitle: 'Potential Difference (Y) vs Electric Current (X)',
+    graphSubtitle: 'Classic V-I characteristic curve. The linear slope directly represents conductor resistance R.',
+    xAxisLabel: 'Electric Current I',
+    xAxisUnit: 'A',
+    yAxisLabel: 'Potential Difference V',
+    yAxisUnit: 'V',
+    slopeLabel: 'Resistance (ΔV / ΔI = R)',
+    slopeUnit: 'Ω (V/A)',
+    slopeExplanation: 'The slope of the V versus I graph (ΔV / ΔI) directly equals the electrical resistance R of the conductor in Ohms (Ω). A constant slope confirms ohmic behavior.',
+    presets: [
+      { label: 'Point 1 (1.0V, 0.10A)', v: 1.0, i: 0.10, r: 10.0, note: 'Ohmic conductor 10 Ω' },
+      { label: 'Point 2 (2.0V, 0.20A)', v: 2.0, i: 0.20, r: 10.0, note: 'Ohmic conductor 10 Ω' },
+      { label: 'Point 3 (3.0V, 0.30A)', v: 3.0, i: 0.30, r: 10.0, note: 'Ohmic conductor 10 Ω' },
+      { label: 'Point 4 (4.0V, 0.40A)', v: 4.0, i: 0.40, r: 10.0, note: 'Ohmic conductor 10 Ω' },
+      { label: 'Point 5 (5.0V, 0.50A)', v: 5.0, i: 0.50, r: 10.0, note: 'Ohmic conductor 10 Ω' },
+    ],
+  },
+  'find-voltage': {
+    id: 'find-voltage',
+    name: 'Mode 3: Find Voltage',
+    shortName: 'Find Voltage',
+    tag: 'V = I × R',
+    formula: 'V = I × R',
+    formulaNote: 'Calculates the potential difference required or dropped when current and resistance are known.',
+    badge: 'Potential Difference Analysis',
+    objective: 'Explore how potential difference scales with current (I) and resistance (R), and verify that at constant current, voltage drop is directly proportional to resistance.',
+    theorySummary: 'When a constant current is maintained through different resistors, the voltage drop V across each resistor is directly proportional to its resistance (V ∝ R). Plotting V versus R produces a straight line whose slope equals the constant current I.',
+    independentVariables: 'Electric Current I (A) & Resistance R (Ω)',
+    dependentVariable: 'Calculated Potential Difference V (V)',
+    graphTitle: 'Potential Difference (Y) vs Resistance (X)',
+    graphSubtitle: 'Plotting V (V) versus R (Ω). Note: Keep Current I constant across trials to interpret the slope.',
+    xAxisLabel: 'Resistance R',
+    xAxisUnit: 'Ω',
+    yAxisLabel: 'Potential Difference V',
+    yAxisUnit: 'V',
+    slopeLabel: 'Electric Current (ΔV / ΔR = I)',
+    slopeUnit: 'A (V/Ω)',
+    slopeExplanation: 'On a V vs R graph, the slope ΔV / ΔR represents the circuit current I in Amperes. For the slope to have physical meaning, the current must remain constant across the recorded observations.',
+    presets: [
+      { label: 'Step 1 (I=0.5A, R=4Ω)', v: 2.0, i: 0.50, r: 4.0, note: 'I = 0.50 A constant' },
+      { label: 'Step 2 (I=0.5A, R=8Ω)', v: 4.0, i: 0.50, r: 8.0, note: 'I = 0.50 A constant' },
+      { label: 'Step 3 (I=0.5A, R=12Ω)', v: 6.0, i: 0.50, r: 12.0, note: 'I = 0.50 A constant' },
+      { label: 'Step 4 (I=0.5A, R=16Ω)', v: 8.0, i: 0.50, r: 16.0, note: 'I = 0.50 A constant' },
+      { label: 'Step 5 (I=0.5A, R=20Ω)', v: 10.0, i: 0.50, r: 20.0, note: 'I = 0.50 A constant' },
+    ],
+  },
+};
 
 export const OHMS_LAW_INFO = {
   title: "Verification of Ohm's Law & Resistance",
