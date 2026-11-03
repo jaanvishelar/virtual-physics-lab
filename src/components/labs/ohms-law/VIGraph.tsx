@@ -1,41 +1,70 @@
 import React, { useState } from 'react';
-import { ObservationReading } from '../../../types';
-import { LineChart, CheckCircle2, AlertCircle, Info, Sparkles } from 'lucide-react';
+import { ObservationReading, OhmsLawMode } from '../../../types';
+import { OHMS_LAW_MODES } from '../../../data/ohmsLawData';
+import { LineChart, CheckCircle2, AlertCircle, Info, Sparkles, TrendingUp } from 'lucide-react';
 
 interface VIGraphProps {
   observations: ObservationReading[];
-  theoreticalResistance: number;
+  mode: OhmsLawMode;
+  theoreticalResistance?: number;
+  theoreticalCurrent?: number;
+  theoreticalVoltage?: number;
 }
 
 export const VIGraph: React.FC<VIGraphProps> = ({
   observations,
-  theoreticalResistance,
+  mode,
+  theoreticalResistance = 10.0,
+  theoreticalCurrent = 0.20,
+  theoreticalVoltage = 2.0,
 }) => {
   const [hoveredPoint, setHoveredPoint] = useState<ObservationReading | null>(null);
+  const currentConfig = OHMS_LAW_MODES[mode];
+
+  // Map observations to (x, y) based on active mode
+  // Mode 1 (Find Current): X = Voltage V, Y = Current I
+  // Mode 2 (Find Resistance): X = Current I, Y = Voltage V
+  // Mode 3 (Find Voltage): X = Resistance R, Y = Voltage V
+  const getXY = (obs: ObservationReading): { x: number; y: number } => {
+    switch (mode) {
+      case 'find-current':
+        return { x: obs.voltage, y: obs.current };
+      case 'find-resistance':
+        return { x: obs.current, y: obs.voltage };
+      case 'find-voltage':
+        return { x: obs.resistance, y: obs.voltage };
+      default:
+        return { x: obs.current, y: obs.voltage };
+    }
+  };
+
+  const dataPoints = observations.map((o) => ({
+    ...o,
+    ...getXY(o),
+  }));
 
   // Require at least 3 points for formal least-squares regression line
-  const hasEnoughData = observations.length >= 3;
+  const hasEnoughData = dataPoints.length >= 3;
 
-  // Linear Regression Calculation (V vs I)
-  // X = Current I, Y = Potential Difference V
+  // Linear Regression Calculation: Y = slope * X + intercept
   let slope = 0;
   let intercept = 0;
   let rSquared = 1.0;
 
   if (hasEnoughData) {
-    const n = observations.length;
+    const n = dataPoints.length;
     let sumX = 0;
     let sumY = 0;
     let sumXY = 0;
     let sumX2 = 0;
     let sumY2 = 0;
 
-    observations.forEach((pt) => {
-      sumX += pt.current;
-      sumY += pt.voltage;
-      sumXY += pt.current * pt.voltage;
-      sumX2 += pt.current * pt.current;
-      sumY2 += pt.voltage * pt.voltage;
+    dataPoints.forEach((pt) => {
+      sumX += pt.x;
+      sumY += pt.y;
+      sumXY += pt.x * pt.y;
+      sumX2 += pt.x * pt.x;
+      sumY2 += pt.y * pt.y;
     });
 
     const denominator = n * sumX2 - sumX * sumX;
@@ -43,91 +72,115 @@ export const VIGraph: React.FC<VIGraphProps> = ({
       slope = (n * sumXY - sumX * sumY) / denominator;
       intercept = (sumY - slope * sumX) / n;
 
-      // Compute Pearson r²
       const numeratorR = n * sumXY - sumX * sumY;
-      const denomR = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-      if (denomR > 0) {
+      const denomR = Math.sqrt(Math.max(0, (n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY)));
+      if (denomR > 0.000001) {
         const r = numeratorR / denomR;
         rSquared = Math.min(1.0, Math.max(0.0, r * r));
       }
     } else {
-      slope = theoreticalResistance;
-      intercept = 0;
+      slope = 0;
+      intercept = sumY / n;
     }
   }
 
-  // Determine plot bounds
-  const maxI = Math.max(1.0, ...observations.map((o) => o.current * 1.25));
-  const maxV = Math.max(10.0, ...observations.map((o) => o.voltage * 1.25));
+  // Determine dynamic plot bounds with sensible default mins
+  const defaultMaxX = mode === 'find-current' ? 12.0 : mode === 'find-resistance' ? 2.5 : 50.0;
+  const defaultMaxY = mode === 'find-current' ? 2.5 : mode === 'find-resistance' ? 15.0 : 15.0;
+
+  const maxX = Math.max(defaultMaxX, ...dataPoints.map((d) => d.x * 1.2));
+  const maxY = Math.max(defaultMaxY, ...dataPoints.map((d) => d.y * 1.2));
 
   // SVG plot viewport dimensions
   const width = 560;
   const height = 360;
-  const padding = { top: 30, right: 30, bottom: 50, left: 60 };
+  const padding = { top: 30, right: 35, bottom: 55, left: 65 };
 
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
 
-  const scaleX = (val: number) => padding.left + (val / maxI) * plotWidth;
-  const scaleY = (val: number) => padding.top + plotHeight - (val / maxV) * plotHeight;
+  const scaleX = (val: number) => padding.left + (val / maxX) * plotWidth;
+  const scaleY = (val: number) => padding.top + plotHeight - (val / maxY) * plotHeight;
 
   // Grid tick lines
   const numTicks = 5;
-  const xTicks = Array.from({ length: numTicks + 1 }, (_, i) => (maxI * i) / numTicks);
-  const yTicks = Array.from({ length: numTicks + 1 }, (_, i) => (maxV * i) / numTicks);
+  const xTicks = Array.from({ length: numTicks + 1 }, (_, i) => (maxX * i) / numTicks);
+  const yTicks = Array.from({ length: numTicks + 1 }, (_, i) => (maxY * i) / numTicks);
 
-  // Best fit line coordinates
+  // Line coordinates across the visible domain
   const x1 = 0;
-  const y1 = intercept;
-  const x2 = maxI;
-  const y2 = slope * maxI + intercept;
+  const y1 = Math.max(0, intercept);
+  const x2 = maxX;
+  const y2 = slope * maxX + intercept;
 
-  const experimentalResistance = slope;
-  const percentError =
-    theoreticalResistance > 0
-      ? (Math.abs(experimentalResistance - theoreticalResistance) / theoreticalResistance) * 100
-      : 0;
+  // Mode-specific interpretation metrics
+  let derivedQuantityLabel = '';
+  let derivedQuantityValue = '';
+  let derivedUnit = '';
+  let interpretationSentence = '';
+
+  if (mode === 'find-current') {
+    derivedQuantityLabel = 'Evaluated Resistance (R = 1 / Slope)';
+    const calculatedR = slope > 0.0001 ? 1 / slope : 0;
+    derivedQuantityValue = calculatedR > 0 ? calculatedR.toFixed(2) : '—';
+    derivedUnit = 'Ω';
+    interpretationSentence =
+      'Under constant resistance, the graph of Current (I) versus Voltage (V) is a straight line passing near the origin. The slope equals Conductance (G = 1/R), confirming I ∝ V.';
+  } else if (mode === 'find-resistance') {
+    derivedQuantityLabel = 'Evaluated Resistance (Slope R = ΔV / ΔI)';
+    derivedQuantityValue = slope > 0 ? slope.toFixed(2) : '—';
+    derivedUnit = 'Ω';
+    interpretationSentence =
+      'For an ohmic conductor, the slope of Potential Difference (V) versus Current (I) is constant and directly equals the conductor resistance R (V = IR).';
+  } else {
+    // find-voltage
+    derivedQuantityLabel = 'Evaluated Current (Slope I = ΔV / ΔR)';
+    derivedQuantityValue = slope > 0 ? slope.toFixed(3) : '—';
+    derivedUnit = 'A';
+    interpretationSentence =
+      'Under constant current, the potential difference across a conductor is directly proportional to its resistance (V ∝ R). The slope ΔV / ΔR directly represents the circuit current I.';
+  }
 
   return (
     <div id="graph-analysis-section" className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs">
       
-      {/* Header */}
+      {/* Graph Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-mono font-bold uppercase mb-1">
             <LineChart className="w-3.5 h-3.5" />
-            <span>Graphical Verification &bull; V vs I</span>
+            <span>{currentConfig.name} &bull; Graphical Analysis</span>
           </div>
           <h3 className="text-xl font-bold text-slate-900 tracking-tight">
-            Experimental Characteristic Curve
+            {currentConfig.graphTitle}
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
-            Plotting Potential Difference V (Y-axis) versus Current I (X-axis) to evaluate conductor resistance from slope.
+            {currentConfig.graphSubtitle}
           </p>
         </div>
 
         {hasEnoughData && (
           <div className="shrink-0 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-800 flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Regression Model Active (N = {observations.length})</span>
+            <span>Linear Fit Active ({dataPoints.length} points)</span>
           </div>
         )}
       </div>
 
-      {/* Main Grid: Graph Canvas + Analytical Interpretation */}
+      {/* Main Grid: SVG Canvas + Analytical Slope Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 items-start">
         
-        {/* Left / Top: SVG Graph (Span 7) */}
+        {/* Left: SVG Cartesian Graph Canvas (Span 7) */}
         <div className="lg:col-span-7 bg-slate-50/80 rounded-xl p-3 sm:p-4 border border-slate-200 relative flex flex-col items-center">
           
           <div className="w-full aspect-[14/9] max-h-[380px]">
             <svg
               viewBox={`0 0 ${width} ${height}`}
               className="w-full h-full select-none"
-              aria-label="V versus I experimental graph"
+              aria-label={`${currentConfig.graphTitle} laboratory plot`}
             >
-              {/* Background Cartesian Grid */}
-              <g opacity="0.6">
+              {/* Background Cartesian Grid Lines */}
+              <g opacity="0.65">
                 {xTicks.map((xVal, i) => (
                   <line
                     key={`grid-x-${i}`}
@@ -154,7 +207,7 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                 ))}
               </g>
 
-              {/* Main Axes */}
+              {/* Main Cartesian Axes */}
               {/* X Axis */}
               <line
                 x1={padding.left}
@@ -184,7 +237,7 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                 fill="#1e293b"
               />
 
-              {/* Ticks and Labels: X-Axis (Current I) */}
+              {/* X-Axis Ticks & Labels */}
               {xTicks.map((xVal, i) => (
                 <g key={`lbl-x-${i}`}>
                   <line
@@ -203,12 +256,12 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                     fontFamily="monospace"
                     fill="#475569"
                   >
-                    {xVal.toFixed(2)}
+                    {mode === 'find-resistance' ? xVal.toFixed(2) : xVal.toFixed(1)}
                   </text>
                 </g>
               ))}
 
-              {/* Ticks and Labels: Y-Axis (Potential Difference V) */}
+              {/* Y-Axis Ticks & Labels */}
               {yTicks.map((yVal, i) => (
                 <g key={`lbl-y-${i}`}>
                   <line
@@ -227,12 +280,12 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                     fontFamily="monospace"
                     fill="#475569"
                   >
-                    {yVal.toFixed(1)}
+                    {mode === 'find-current' ? yVal.toFixed(2) : yVal.toFixed(1)}
                   </text>
                 </g>
               ))}
 
-              {/* Axis Title Labels */}
+              {/* Axis Titles */}
               <text
                 x={padding.left + plotWidth / 2}
                 y={height - 12}
@@ -242,7 +295,7 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                 fontWeight="bold"
                 fill="#0f172a"
               >
-                Current I (A) &rarr;
+                {currentConfig.xAxisLabel} ({currentConfig.xAxisUnit}) &rarr;
               </text>
 
               <text
@@ -255,10 +308,10 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                 fontWeight="bold"
                 fill="#0f172a"
               >
-                Potential Difference V (V) &rarr;
+                {currentConfig.yAxisLabel} ({currentConfig.yAxisUnit}) &rarr;
               </text>
 
-              {/* Best Fit Linear Regression Line (Only if >= 3 data points) */}
+              {/* Best-Fit Linear Regression Line */}
               {hasEnoughData && (
                 <g>
                   <line
@@ -273,10 +326,10 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                 </g>
               )}
 
-              {/* Recorded Data Points */}
-              {observations.map((pt, idx) => {
-                const cx = scaleX(pt.current);
-                const cy = scaleY(pt.voltage);
+              {/* Actual Recorded Data Points */}
+              {dataPoints.map((pt, idx) => {
+                const cx = scaleX(pt.x);
+                const cy = scaleY(pt.y);
                 const isHovered = hoveredPoint?.id === pt.id;
 
                 return (
@@ -288,7 +341,7 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                   >
                     {/* Outer glow ring on hover */}
                     {isHovered && (
-                      <circle cx={cx} cy={cy} r="10" fill="#4f46e5" fillOpacity="0.2" />
+                      <circle cx={cx} cy={cy} r="10" fill="#4f46e5" fillOpacity="0.25" />
                     )}
                     {/* Data point circle */}
                     <circle
@@ -308,7 +361,7 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                       fontSize="9"
                       fontFamily="monospace"
                       fontWeight="bold"
-                      fill="#334155"
+                      fill="#1e293b"
                     >
                       P{idx + 1}
                     </text>
@@ -320,8 +373,10 @@ export const VIGraph: React.FC<VIGraphProps> = ({
 
           {/* Hovered Point Callout */}
           {hoveredPoint && (
-            <div className="mt-2 text-xs font-mono bg-slate-900 text-white px-3 py-1 rounded-lg">
-              Point: Current I = {hoveredPoint.current.toFixed(3)} A, Voltage V = {hoveredPoint.voltage.toFixed(2)} V (R = {hoveredPoint.resistance.toFixed(2)} Ω)
+            <div className="mt-2 text-xs font-mono bg-slate-900 text-white px-3.5 py-1.5 rounded-lg shadow-sm">
+              Point: {currentConfig.xAxisLabel} = {getXY(hoveredPoint).x.toFixed(2)} {currentConfig.xAxisUnit},{' '}
+              {currentConfig.yAxisLabel} = {getXY(hoveredPoint).y.toFixed(3)} {currentConfig.yAxisUnit}{' '}
+              (V = {hoveredPoint.voltage.toFixed(2)}V, I = {hoveredPoint.current.toFixed(3)}A, R = {hoveredPoint.resistance.toFixed(1)}Ω)
             </div>
           )}
 
@@ -330,40 +385,46 @@ export const VIGraph: React.FC<VIGraphProps> = ({
             <div className="mt-3 w-full p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
-                <strong>Record at least 3 observations to generate the experimental graph.</strong> Currently {observations.length} recorded.
+                <strong>Record at least 3 observations in {currentConfig.shortName} to plot the best-fit line.</strong> Currently {dataPoints.length} logged.
               </span>
             </div>
           )}
 
           <div className="mt-2 text-[11px] text-slate-500 font-mono text-center">
-            * For a V-I graph, the slope represents resistance (R = ΔV / ΔI).
+            * {currentConfig.slopeExplanation}
           </div>
         </div>
 
-        {/* Right: Data Analysis & Experimental Result (Span 5) */}
+        {/* Right: Mathematical Analysis & Formal Experimental Conclusion (Span 5) */}
         <div className="lg:col-span-5 flex flex-col gap-4">
           
           {/* Analytical Calculation Card */}
           <div className="bg-slate-900 text-white rounded-xl p-5 border border-slate-800 shadow-xs">
             <div className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-bold mb-3 flex items-center justify-between">
               <span>Mathematical Slope Analysis</span>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">Least-Squares</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                Least-Squares Method
+              </span>
             </div>
 
             {hasEnoughData ? (
               <div className="space-y-3 font-mono text-xs">
+                {/* Fitted Line Equation */}
                 <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
                   <div className="text-slate-400 text-[11px]">Best-Fit Line Equation:</div>
                   <div className="text-indigo-300 text-sm font-bold mt-0.5">
-                    V = ({slope.toFixed(2)}) &middot; I {intercept >= 0 ? `+ ${intercept.toFixed(2)}` : `- ${Math.abs(intercept).toFixed(2)}`}
+                    {mode === 'find-current' ? 'I' : 'V'} = ({slope.toFixed(4)}) &middot;{' '}
+                    {mode === 'find-current' ? 'V' : mode === 'find-resistance' ? 'I' : 'R'}{' '}
+                    {intercept >= 0 ? `+ ${intercept.toFixed(3)}` : `- ${Math.abs(intercept).toFixed(3)}`}
                   </div>
                 </div>
 
+                {/* Slope and R2 Grid */}
                 <div className="grid grid-cols-2 gap-2">
                   <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                    <div className="text-slate-400 text-[10px]">Slope (ΔV / ΔI):</div>
+                    <div className="text-slate-400 text-[10px]">Slope (ΔY / ΔX):</div>
                     <div className="text-emerald-400 text-sm font-bold mt-0.5">
-                      {slope.toFixed(3)} V/A
+                      {slope.toFixed(4)} {currentConfig.slopeUnit}
                     </div>
                   </div>
                   <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
@@ -374,55 +435,58 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                   </div>
                 </div>
 
+                {/* Derived Physical Quantity */}
                 <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                  <span className="text-slate-300">Experimental Resistance:</span>
-                  <span className="text-base font-bold text-indigo-300 font-mono">
-                    {experimentalResistance.toFixed(2)} Ω
+                  <span className="text-slate-300">{derivedQuantityLabel}:</span>
+                  <span className="text-base font-bold text-amber-300 font-mono">
+                    {derivedQuantityValue} {derivedUnit}
                   </span>
                 </div>
               </div>
             ) : (
               <div className="py-6 text-center text-xs text-slate-400 font-mono">
-                Awaiting 3 observations to compute line slope and goodness-of-fit.
+                Log at least 3 trials in {currentConfig.shortName} to evaluate the mathematical slope and R² fit.
               </div>
             )}
           </div>
 
-          {/* Formal Experimental Result Section */}
-          <div className="bg-emerald-50/60 rounded-xl p-5 border border-emerald-200/90 shadow-xs">
+          {/* Formal Experimental Conclusion Card */}
+          <div className="bg-emerald-50/70 rounded-xl p-5 border border-emerald-200/90 shadow-xs">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-800 uppercase tracking-wider mb-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Experimental Result</span>
+              <span>Experimental Conclusion</span>
             </div>
 
             {hasEnoughData ? (
               <div className="space-y-3 text-xs sm:text-sm text-slate-800">
                 <p className="font-semibold text-emerald-950 leading-relaxed">
-                  "The V-I relationship is approximately linear, supporting Ohm's Law under the conditions of this simulation."
+                  "{interpretationSentence}"
                 </p>
 
                 <div className="p-3 rounded-lg bg-white border border-emerald-200 font-mono text-xs space-y-1.5">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Selected (Theoretical) Resistance:</span>
-                    <span className="font-bold text-slate-900">{theoreticalResistance.toFixed(2)} Ω</span>
+                    <span className="text-slate-500">Selected Mode:</span>
+                    <span className="font-bold text-slate-900">{currentConfig.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Experimental Resistance (Slope):</span>
-                    <span className="font-bold text-indigo-700">{experimentalResistance.toFixed(2)} Ω</span>
+                    <span className="text-slate-500">{currentConfig.slopeLabel}:</span>
+                    <span className="font-bold text-indigo-700">
+                      {slope.toFixed(4)} {currentConfig.slopeUnit}
+                    </span>
                   </div>
                   <div className="flex justify-between pt-1 border-t border-slate-100">
-                    <span className="text-slate-500">Percentage Deviation:</span>
-                    <span className="font-bold text-emerald-700">{percentError.toFixed(2)}%</span>
+                    <span className="text-slate-500">Goodness-of-Fit (R²):</span>
+                    <span className="font-bold text-emerald-700">{(rSquared * 100).toFixed(2)}%</span>
                   </div>
                 </div>
 
                 <p className="text-xs text-slate-600 leading-relaxed font-sans">
-                  The experimental slope agrees with the chosen conductor resistance, verifying that <span className="font-mono font-bold">V ∝ I</span> when temperature and physical dimensions remain fixed.
+                  The linear correlation coefficient of {rSquared.toFixed(4)} demonstrates that experimental points lie along a straight line, verifying Ohm's Law relationship under controlled conditions.
                 </p>
               </div>
             ) : (
               <p className="text-xs text-slate-600 leading-relaxed">
-                Log at least 3 trials in the observation table above to complete the automated graph analysis and view the formal experimental result report.
+                Log at least 3 trials for {currentConfig.shortName} to view the automated graph interpretation and experimental result verification report.
               </p>
             )}
           </div>
