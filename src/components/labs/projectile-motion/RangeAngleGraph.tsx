@@ -512,20 +512,20 @@ export const RangeAngleGraph: React.FC<RangeAngleGraphProps> = ({
         </div>
       </div>
 
-      {/* SECTION 2: CRITICAL SCIENTIFIC PRINCIPLE - WHY LINEAR REGRESSION IS NOT USED */}
+      {/* SECTION 2: CRITICAL SCIENTIFIC PRINCIPLE - WHY STRAIGHT-LINE TWO-POINT SLOPE IS NOT USED */}
       <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs space-y-2">
         <div className="flex items-center gap-2 text-slate-900 font-bold">
           <Info className="w-4 h-4 text-indigo-600 shrink-0" />
-          <span>Scientific Principle: Why Linear Least-Squares Regression is Not Used</span>
+          <span>Scientific Principle: Why the Two-Point Straight-Line Slope Method is Not Used</span>
         </div>
         <p className="text-slate-800 leading-relaxed font-sans text-xs">
-          <strong>&ldquo;Range is not linearly proportional to projection angle; therefore a straight-line least-squares slope is not used for this relationship.&rdquo;</strong>
+          <strong>&ldquo;Horizontal range is not linearly proportional to projection angle; therefore, a straight-line fit and the traditional two-point slope method are not applicable to this relationship.&rdquo;</strong>
         </p>
         <p className="text-slate-600 leading-relaxed font-sans text-xs">
-          Horizontal range follows the non-linear sinusoidal function <em>R(θ) = [u² / g] · sin(2θ)</em>.
-          Unlike Ohm's Law (<em>V = IR</em>), Simple Pendulum (<em>T² ∝ L</em>), or Hooke's Law (<em>F = kx</em>) which represent linear models,
-          projectile range increases to an optimal peak at approximately 45° and then symmetrically decreases toward 90°.
-          Therefore, evaluating this experiment involves comparing recorded coordinate points directly with the theoretical sinusoidal curve rather than fitting an artificial linear slope.
+          Horizontal range follows the non-linear sinusoidal function <em>R(&theta;) = [u&sup2; / g] &middot; sin(2&theta;)</em>.
+          Unlike Ohm's Law (<em>V = IR</em>), Simple Pendulum (<em>T&sup2; &prop; L</em>), Hooke's Law (<em>F = kx</em>), and Convex Lens (<em>1/v &minus; 1/u = 1/f</em>) which have linear relationships where a constant slope represents a fundamental physical constant,
+          projectile range increases to an optimal peak at 45&deg; and then symmetrically decreases toward 90&deg; (where the instantaneous slope changes continuously from positive to zero to negative).
+          Therefore, this experiment compares experimental coordinate observations directly against the theoretical sinusoidal trajectory curve rather than forcing an invalid straight-line slope.
         </p>
       </div>
 
