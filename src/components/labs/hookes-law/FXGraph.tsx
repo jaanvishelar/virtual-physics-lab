@@ -63,18 +63,26 @@ export const FXGraph: React.FC<FXGraphProps> = ({
   const domainMax = lineFit ? Math.max(lineFit.maxX * 1.05, 0.12) : 0.20;
   const domainSpan = domainMax - domainMin;
 
-  // Actual coordinates of Point A (x₁, F₁) and Point B (x₂, F₂) on the best-fit line
-  const ptA_x = domainMin + posRatioA * domainSpan;
-  const ptA_F = lineFit ? lineFit.m * ptA_x + lineFit.c : 0;
+  // Raw coordinates
+  const rawPtA_x = domainMin + posRatioA * domainSpan;
+  const rawPtA_F = lineFit ? lineFit.m * rawPtA_x + lineFit.c : 0;
 
-  const ptB_x = domainMin + posRatioB * domainSpan;
-  const ptB_F = lineFit ? lineFit.m * ptB_x + lineFit.c : 0;
+  const rawPtB_x = domainMin + posRatioB * domainSpan;
+  const rawPtB_F = lineFit ? lineFit.m * rawPtB_x + lineFit.c : 0;
 
-  // Traditional two-point slope calculation: m = (F₂ - F₁) / (x₂ - x₁)
-  const deltaX = ptB_x - ptA_x;
-  const deltaF = ptB_F - ptA_F;
+  // Formatted displayed coordinates (3 decimals for extension in m, 2 decimals for Force in N)
+  const ptA_x_disp = Number(rawPtA_x.toFixed(3));
+  const ptA_F_disp = Number(rawPtA_F.toFixed(2));
+
+  const ptB_x_disp = Number(rawPtB_x.toFixed(3));
+  const ptB_F_disp = Number(rawPtB_F.toFixed(2));
+
+  // Differences computed directly from displayed coordinates for 100% numerical consistency
+  const deltaX = Number((ptB_x_disp - ptA_x_disp).toFixed(3));
+  const deltaF = Number((ptB_F_disp - ptA_F_disp).toFixed(2));
   const isZeroDivision = Math.abs(deltaX) < 1e-6;
 
+  // Slope m = ΔF / Δx
   const calculatedSlope = !isZeroDivision ? deltaF / deltaX : 0;
   const experimentalK = calculatedSlope > 0.001 ? calculatedSlope : null;
   const percentageError =
@@ -82,7 +90,7 @@ export const FXGraph: React.FC<FXGraphProps> = ({
 
   // SVG viewport dimensions
   const width = 560;
-  const height = 360;
+  const height = 350;
   const padding = { top: 30, right: 30, bottom: 50, left: 65 };
 
   const plotWidth = width - padding.left - padding.right;
@@ -102,10 +110,10 @@ export const FXGraph: React.FC<FXGraphProps> = ({
   const lineX2 = maxX;
   const lineY2 = lineFit ? lineFit.m * maxX + lineFit.c : theoreticalK * maxX;
 
-  // Pixel coordinates for Point A, Point B, and the slope triangle vertex
-  const pxA = { x: scaleX(ptA_x), y: scaleY(ptA_F) };
-  const pxB = { x: scaleX(ptB_x), y: scaleY(ptB_F) };
-  const pxCorner = { x: scaleX(ptB_x), y: scaleY(ptA_F) };
+  // Pixel coordinates for Point A (Blue), Point B (Orange), and triangle vertex
+  const pxA = { x: scaleX(ptA_x_disp), y: scaleY(ptA_F_disp) };
+  const pxB = { x: scaleX(ptB_x_disp), y: scaleY(ptB_F_disp) };
+  const pxCorner = { x: scaleX(ptB_x_disp), y: scaleY(ptA_F_disp) };
 
   // Theoretical line
   const theoX2 = maxX;
@@ -117,7 +125,7 @@ export const FXGraph: React.FC<FXGraphProps> = ({
   };
 
   return (
-    <div id="hooke-graph-analysis-section" className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs">
+    <div id="hooke-graph-analysis-card" className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs">
       
       {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200">
@@ -130,22 +138,23 @@ export const FXGraph: React.FC<FXGraphProps> = ({
             Force F versus Extension x &bull; Determination of Spring Constant k
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
-            Plotting applied force (F = mg) against extension (x). Select two well-separated points on the best-fit line to calculate slope m = &Delta;F / &Delta;x, which directly gives spring constant k.
+            Plotting applied force (F = mg) against measured extension (x). Select two well-separated points on the best-fit line to calculate slope m = &Delta;F / &Delta;x, which directly gives the spring constant k.
           </p>
         </div>
 
-        {/* Action Buttons & Status */}
+        {/* Action Controls */}
         <div className="flex items-center gap-2 shrink-0">
           {hasEnoughData && (
             <button
               onClick={resetToRecommendedPoints}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-mono font-semibold transition-colors cursor-pointer"
-              title="Reset to recommended points"
+              title="Reset to recommended well-separated points"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Points</span>
             </button>
           )}
+
           {hasEnoughData ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-mono font-bold">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -160,54 +169,51 @@ export const FXGraph: React.FC<FXGraphProps> = ({
         </div>
       </div>
 
-      {/* Main Grid: Left = SVG Graph with Slope Triangle, Right = Analytical Results */}
+      {/* Main Grid: Left = SVG Plot, Right = Standardized 6-Step Calculation Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 items-stretch">
         
-        {/* Graph SVG Plot (Span 7) */}
-        <div className="lg:col-span-7 bg-slate-900 rounded-2xl p-4 sm:p-5 border border-slate-800 flex flex-col items-center justify-between">
-          <div className="w-full flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
-            <span className="text-slate-300 font-bold">Cartesian Plot: Force F vs Extension x</span>
+        {/* Left: SVG Canvas (Span 7) */}
+        <div className="lg:col-span-7 bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200 flex flex-col justify-between">
+          <div className="w-full flex items-center justify-between text-xs font-mono text-slate-600 mb-2">
+            <span className="font-bold text-slate-800">Cartesian Plot: Applied Force F (N) vs Extension x (m)</span>
             <div className="flex items-center gap-3 text-[11px]">
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
-                Data Points
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block" />
+                Observations
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-4 h-0.5 bg-indigo-400 inline-block" />
+                <span className="w-3 h-0.5 bg-indigo-500 inline-block" />
                 Best-Fit Line
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block" />
-                Selected Points
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+                Point A
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
+                Point B
               </span>
             </div>
           </div>
 
           {/* SVG Plot */}
           <div className="w-full relative flex items-center justify-center">
-            <svg
-              viewBox={`0 0 ${width} ${height}`}
-              className="w-full max-w-[560px] h-auto select-none"
-            >
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[560px] h-auto select-none">
               <defs>
-                <linearGradient id="hookePlotGridGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#1e293b" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#0f172a" stopOpacity="0.8" />
-                </linearGradient>
-                <linearGradient id="hookeSlopeTriangleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#ec4899" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.10" />
+                <linearGradient id="hookeSlopeTriangleGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="#f97316" stopOpacity="0.15" />
                 </linearGradient>
               </defs>
 
-              {/* Background */}
+              {/* Background Canvas */}
               <rect
                 x={padding.left}
                 y={padding.top}
                 width={plotWidth}
                 height={plotHeight}
-                fill="url(#hookePlotGridGrad)"
-                stroke="#334155"
+                fill="#ffffff"
+                stroke="#cbd5e1"
                 strokeWidth="1"
               />
 
@@ -221,23 +227,22 @@ export const FXGraph: React.FC<FXGraphProps> = ({
                       y1={padding.top}
                       x2={xPx}
                       y2={padding.top + plotHeight}
-                      stroke="#334155"
-                      strokeWidth="0.5"
-                      strokeDasharray="2 2"
+                      stroke="#f1f5f9"
+                      strokeWidth="1"
                     />
                     <line
                       x1={xPx}
                       y1={padding.top + plotHeight}
                       x2={xPx}
                       y2={padding.top + plotHeight + 5}
-                      stroke="#64748b"
+                      stroke="#94a3b8"
                       strokeWidth="1"
                     />
                     <text
                       x={xPx}
                       y={padding.top + plotHeight + 18}
                       textAnchor="middle"
-                      fill="#94a3b8"
+                      fill="#64748b"
                       fontSize="9.5"
                       fontFamily="monospace"
                     >
@@ -257,229 +262,55 @@ export const FXGraph: React.FC<FXGraphProps> = ({
                       y1={yPx}
                       x2={padding.left + plotWidth}
                       y2={yPx}
-                      stroke="#334155"
-                      strokeWidth="0.5"
-                      strokeDasharray="2 2"
+                      stroke="#f1f5f9"
+                      strokeWidth="1"
                     />
                     <line
                       x1={padding.left - 5}
                       y1={yPx}
                       x2={padding.left}
                       y2={yPx}
-                      stroke="#64748b"
+                      stroke="#94a3b8"
                       strokeWidth="1"
                     />
                     <text
-                      x={padding.left - 10}
+                      x={padding.left - 8}
                       y={yPx + 3.5}
                       textAnchor="end"
-                      fill="#94a3b8"
+                      fill="#64748b"
                       fontSize="9.5"
                       fontFamily="monospace"
                     >
-                      {yVal.toFixed(2)}
+                      {yVal.toFixed(1)}
                     </text>
                   </g>
                 );
               })}
 
-              {/* Theoretical Reference Line (dashed amber line) */}
+              {/* Axes lines */}
               <line
-                x1={scaleX(0)}
-                y1={scaleY(0)}
-                x2={scaleX(theoX2)}
-                y2={scaleY(theoY2)}
-                stroke="#fbbf24"
-                strokeWidth="1"
-                strokeDasharray="4 4"
-                opacity="0.65"
+                x1={padding.left}
+                y1={padding.top + plotHeight}
+                x2={padding.left + plotWidth}
+                y2={padding.top + plotHeight}
+                stroke="#475569"
+                strokeWidth="1.5"
               />
-
-              {/* Best-Fit Straight Line (indigo solid) */}
-              {hasEnoughData && (
-                <line
-                  x1={scaleX(lineX1)}
-                  y1={scaleY(lineY1)}
-                  x2={scaleX(lineX2)}
-                  y2={scaleY(lineY2)}
-                  stroke="#818cf8"
-                  strokeWidth="2.5"
-                />
-              )}
-
-              {/* Traditional Practical Slope Triangle (Δx base, ΔF height) */}
-              {hasEnoughData && !isZeroDivision && (
-                <g className="slope-triangle">
-                  {/* Shaded triangle area */}
-                  <polygon
-                    points={`${pxA.x},${pxA.y} ${pxCorner.x},${pxCorner.y} ${pxB.x},${pxB.y}`}
-                    fill="url(#hookeSlopeTriangleGrad)"
-                    stroke="#ec4899"
-                    strokeWidth="1.5"
-                    strokeDasharray="3 3"
-                  />
-
-                  {/* Horizontal base: Δx */}
-                  <line
-                    x1={pxA.x}
-                    y1={pxA.y}
-                    x2={pxCorner.x}
-                    y2={pxCorner.y}
-                    stroke="#38bdf8"
-                    strokeWidth="2"
-                    strokeDasharray="4 2"
-                  />
-
-                  {/* Vertical height: ΔF */}
-                  <line
-                    x1={pxCorner.x}
-                    y1={pxCorner.y}
-                    x2={pxB.x}
-                    y2={pxB.y}
-                    stroke="#a855f7"
-                    strokeWidth="2"
-                    strokeDasharray="4 2"
-                  />
-
-                  {/* Δx Label */}
-                  <text
-                    x={(pxA.x + pxCorner.x) / 2}
-                    y={pxA.y + 14}
-                    fill="#38bdf8"
-                    fontSize="9.5"
-                    fontFamily="monospace"
-                    fontWeight="bold"
-                    textAnchor="middle"
-                  >
-                    &Delta;x = {Math.abs(deltaX).toFixed(3)} m
-                  </text>
-
-                  {/* ΔF Label */}
-                  <text
-                    x={pxCorner.x + 8}
-                    y={(pxCorner.y + pxB.y) / 2 + 3}
-                    fill="#c084fc"
-                    fontSize="9.5"
-                    fontFamily="monospace"
-                    fontWeight="bold"
-                    textAnchor="start"
-                  >
-                    &Delta;F = {Math.abs(deltaF).toFixed(2)} N
-                  </text>
-                </g>
-              )}
-
-              {/* Observed Experimental Points */}
-              {observations.map((obs) => {
-                const cx = scaleX(obs.extensionMeters);
-                const cy = scaleY(obs.force);
-                const isHovered = hoveredPoint?.id === obs.id;
-
-                return (
-                  <g
-                    key={obs.id}
-                    className="cursor-pointer transition-all"
-                    onMouseEnter={() => setHoveredPoint(obs)}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                  >
-                    {isHovered && (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r="11"
-                        fill="#34d399"
-                        opacity="0.3"
-                      />
-                    )}
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r="5.5"
-                      fill="#065f46"
-                      stroke="#34d399"
-                      strokeWidth="2"
-                    />
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r="2.5"
-                      fill="#ecfdf5"
-                    />
-                  </g>
-                );
-              })}
-
-              {/* Selected Two Points on Best-Fit Line (Point A and Point B) */}
-              {hasEnoughData && (
-                <g>
-                  {/* Point A */}
-                  <g className="cursor-pointer">
-                    <circle
-                      cx={pxA.x}
-                      cy={pxA.y}
-                      r="8"
-                      fill="#ec4899"
-                      opacity="0.3"
-                    />
-                    <circle
-                      cx={pxA.x}
-                      cy={pxA.y}
-                      r="5"
-                      fill="#ec4899"
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                    />
-                    <text
-                      x={pxA.x}
-                      y={pxA.y - 10}
-                      fill="#f472b6"
-                      fontSize="10"
-                      fontFamily="monospace"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                    >
-                      A ({ptA_x.toFixed(3)}, {ptA_F.toFixed(2)})
-                    </text>
-                  </g>
-
-                  {/* Point B */}
-                  <g className="cursor-pointer">
-                    <circle
-                      cx={pxB.x}
-                      cy={pxB.y}
-                      r="8"
-                      fill="#a855f7"
-                      opacity="0.3"
-                    />
-                    <circle
-                      cx={pxB.x}
-                      cy={pxB.y}
-                      r="5"
-                      fill="#a855f7"
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                    />
-                    <text
-                      x={pxB.x}
-                      y={pxB.y - 10}
-                      fill="#c084fc"
-                      fontSize="10"
-                      fontFamily="monospace"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                    >
-                      B ({ptB_x.toFixed(3)}, {ptB_F.toFixed(2)})
-                    </text>
-                  </g>
-                </g>
-              )}
+              <line
+                x1={padding.left}
+                y1={padding.top}
+                x2={padding.left}
+                y2={padding.top + plotHeight}
+                stroke="#475569"
+                strokeWidth="1.5"
+              />
 
               {/* X-Axis Label */}
               <text
                 x={padding.left + plotWidth / 2}
                 y={height - 12}
                 textAnchor="middle"
-                fill="#cbd5e1"
+                fill="#334155"
                 fontSize="11"
                 fontFamily="monospace"
                 fontWeight="bold"
@@ -493,241 +324,375 @@ export const FXGraph: React.FC<FXGraphProps> = ({
                 y="18"
                 transform="rotate(-90)"
                 textAnchor="middle"
-                fill="#cbd5e1"
+                fill="#334155"
                 fontSize="11"
                 fontFamily="monospace"
                 fontWeight="bold"
               >
                 Applied Force F (N)
               </text>
+
+              {/* Theoretical line (F = 20 * x, dashed amber) */}
+              <line
+                x1={scaleX(0)}
+                y1={scaleY(0)}
+                x2={scaleX(theoX2)}
+                y2={scaleY(theoY2)}
+                stroke="#f59e0b"
+                strokeWidth="1.5"
+                strokeDasharray="4 4"
+                opacity="0.7"
+              />
+
+              {/* Best-Fit Straight Line (Indigo Solid) */}
+              {hasEnoughData && (
+                <line
+                  x1={scaleX(lineX1)}
+                  y1={scaleY(lineY1)}
+                  x2={scaleX(lineX2)}
+                  y2={scaleY(lineY2)}
+                  stroke="#4f46e5"
+                  strokeWidth="2.5"
+                />
+              )}
+
+              {/* Right-Angled Slope Triangle between Point A (Blue) and Point B (Orange) */}
+              {hasEnoughData && !isZeroDivision && (
+                <g className="slope-triangle">
+                  <polygon
+                    points={`${pxA.x},${pxA.y} ${pxCorner.x},${pxCorner.y} ${pxB.x},${pxB.y}`}
+                    fill="url(#hookeSlopeTriangleGrad2)"
+                    stroke="#94a3b8"
+                    strokeWidth="1"
+                    strokeDasharray="3 3"
+                  />
+
+                  {/* Horizontal Guide: Δx (Blue dashed) */}
+                  <line
+                    x1={pxA.x}
+                    y1={pxA.y}
+                    x2={pxCorner.x}
+                    y2={pxCorner.y}
+                    stroke="#2563eb"
+                    strokeWidth="2"
+                    strokeDasharray="4 3"
+                  />
+
+                  {/* Vertical Guide: ΔF (Orange dashed) */}
+                  <line
+                    x1={pxCorner.x}
+                    y1={pxCorner.y}
+                    x2={pxB.x}
+                    y2={pxB.y}
+                    stroke="#ea580c"
+                    strokeWidth="2"
+                    strokeDasharray="4 3"
+                  />
+
+                  {/* Corner right angle */}
+                  <rect
+                    x={pxCorner.x - 7}
+                    y={pxCorner.y - 7}
+                    width="7"
+                    height="7"
+                    fill="none"
+                    stroke="#64748b"
+                    strokeWidth="1"
+                  />
+
+                  {/* Δx Label */}
+                  <text
+                    x={(pxA.x + pxCorner.x) / 2}
+                    y={pxCorner.y + 14}
+                    textAnchor="middle"
+                    fontSize="9.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                    fill="#1d4ed8"
+                  >
+                    Δx = {deltaX.toFixed(3)} m
+                  </text>
+
+                  {/* ΔF Label */}
+                  <text
+                    x={pxCorner.x + 8}
+                    y={(pxCorner.y + pxB.y) / 2 + 3}
+                    textAnchor="start"
+                    fontSize="9.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                    fill="#c2410c"
+                  >
+                    ΔF = {deltaF.toFixed(2)} N
+                  </text>
+                </g>
+              )}
+
+              {/* Actual Experimental Observation Points */}
+              {observations.map((obs, idx) => {
+                const cx = scaleX(obs.extensionMeters);
+                const cy = scaleY(obs.force);
+
+                return (
+                  <g
+                    key={obs.id}
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredPoint(obs)}
+                    onMouseLeave={() => setHoveredPoint(null)}
+                  >
+                    <circle cx={cx} cy={cy} r="4.5" fill="#ffffff" stroke="#4f46e5" strokeWidth="2" />
+                    <circle cx={cx} cy={cy} r="2" fill="#4f46e5" />
+                    <text
+                      x={cx + 6}
+                      y={cy - 5}
+                      fontSize="8.5"
+                      fontFamily="monospace"
+                      fontWeight="bold"
+                      fill="#475569"
+                    >
+                      #{idx + 1}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Point A Marker (Blue) */}
+              {hasEnoughData && (
+                <g>
+                  <circle cx={pxA.x} cy={pxA.y} r="8" fill="#2563eb" fillOpacity="0.3" />
+                  <circle cx={pxA.x} cy={pxA.y} r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
+                  <rect
+                    x={pxA.x - 30}
+                    y={pxA.y - 24}
+                    width="60"
+                    height="16"
+                    rx="4"
+                    fill="#1e3a8a"
+                  />
+                  <text
+                    x={pxA.x}
+                    y={pxA.y - 13}
+                    textAnchor="middle"
+                    fontSize="8.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                    fill="#ffffff"
+                  >
+                    A ({ptA_x_disp.toFixed(3)}, {ptA_F_disp.toFixed(2)})
+                  </text>
+                </g>
+              )}
+
+              {/* Point B Marker (Orange) */}
+              {hasEnoughData && (
+                <g>
+                  <circle cx={pxB.x} cy={pxB.y} r="8" fill="#ea580c" fillOpacity="0.3" />
+                  <circle cx={pxB.x} cy={pxB.y} r="5" fill="#ea580c" stroke="#ffffff" strokeWidth="2" />
+                  <rect
+                    x={pxB.x - 30}
+                    y={pxB.y - 24}
+                    width="60"
+                    height="16"
+                    rx="4"
+                    fill="#7c2d12"
+                  />
+                  <text
+                    x={pxB.x}
+                    y={pxB.y - 13}
+                    textAnchor="middle"
+                    fontSize="8.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                    fill="#ffffff"
+                  >
+                    B ({ptB_x_disp.toFixed(3)}, {ptB_F_disp.toFixed(2)})
+                  </text>
+                </g>
+              )}
             </svg>
           </div>
 
-          {/* Interactive Sliders to Choose Points on the Best-Fit Line */}
+          {/* Interactive Sliders for Adjusting Point A and Point B on the Line */}
           {hasEnoughData && (
-            <div className="w-full mt-3 p-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-2.5">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-slate-300 font-bold flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5 text-pink-400" />
-                  Select Two Points on the Best-Fit Line:
+            <div className="w-full mt-3 p-3 rounded-xl bg-white border border-slate-200 space-y-2 text-xs font-mono">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-indigo-600" />
+                  Adjust Point Positions Along Best-Fit Line:
                 </span>
-                <span className="text-slate-400 text-[11px]">
-                  Keep points well-separated for practical accuracy
+                <span className="text-[11px] text-slate-500">
+                  Select well-separated points to minimize reading errors
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Slider for Point A */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-mono">
-                    <span className="text-pink-400 font-bold">Point A (x₁, F₁)</span>
-                    <span className="text-slate-300">
-                      ({ptA_x.toFixed(3)} m, {ptA_F.toFixed(2)} N)
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {/* Point A Slider (Blue) */}
+                <div>
+                  <div className="flex justify-between items-center text-[11px] mb-1">
+                    <span className="text-blue-700 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
+                      Point A (x₁, F₁): ({ptA_x_disp.toFixed(3)} m, {ptA_F_disp.toFixed(2)} N)
                     </span>
                   </div>
                   <input
                     type="range"
                     min="0.05"
-                    max="0.45"
+                    max="0.48"
                     step="0.01"
                     value={posRatioA}
                     onChange={(e) => setPosRatioA(parseFloat(e.target.value))}
-                    className="w-full accent-pink-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg appearance-none"
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    aria-label="Adjust position of Point A along best-fit line"
                   />
                 </div>
 
-                {/* Slider for Point B */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-mono">
-                    <span className="text-purple-400 font-bold">Point B (x₂, F₂)</span>
-                    <span className="text-slate-300">
-                      ({ptB_x.toFixed(3)} m, {ptB_F.toFixed(2)} N)
+                {/* Point B Slider (Orange) */}
+                <div>
+                  <div className="flex justify-between items-center text-[11px] mb-1">
+                    <span className="text-orange-700 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-orange-600 inline-block" />
+                      Point B (x₂, F₂): ({ptB_x_disp.toFixed(3)} m, {ptB_F_disp.toFixed(2)} N)
                     </span>
                   </div>
                   <input
                     type="range"
-                    min="0.55"
+                    min="0.52"
                     max="0.95"
                     step="0.01"
                     value={posRatioB}
                     onChange={(e) => setPosRatioB(parseFloat(e.target.value))}
-                    className="w-full accent-purple-500 cursor-pointer h-1.5 bg-slate-700 rounded-lg appearance-none"
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
+                    aria-label="Adjust position of Point B along best-fit line"
                   />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Hovered Point Inspection Callout */}
-          <div className="w-full mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono">
+          {/* Hovered Point Inspection */}
+          <div className="w-full mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-xs font-mono">
             {hoveredPoint ? (
-              <div className="text-emerald-400 flex items-center gap-2">
-                <span>Trial #{hoveredPoint.srNo}:</span>
-                <span className="text-white">x = {hoveredPoint.extensionMeters.toFixed(4)} m</span>
-                <span className="text-sky-300">F = {hoveredPoint.force.toFixed(3)} N</span>
-                <span className="text-yellow-300">m = {hoveredPoint.massGrams} g</span>
+              <div className="text-indigo-700 flex items-center gap-2">
+                <span className="font-bold">Trial #{hoveredPoint.srNo}:</span>
+                <span>x = {hoveredPoint.extensionMeters.toFixed(4)} m</span>
+                <span>F = {hoveredPoint.force.toFixed(2)} N</span>
+                <span className="font-bold">m = {hoveredPoint.massGrams} g</span>
               </div>
             ) : (
               <div className="text-slate-500">
-                Hover over data points to inspect experimental coordinates
+                Hover over data points to inspect experimental values
               </div>
             )}
             <div className="text-slate-400 text-[11px]">
-              Dashed amber line: Theoretical reference (k = {theoreticalK} N/m)
+              Dashed line: Theoretical reference (k = {theoreticalK} N/m)
             </div>
           </div>
         </div>
 
-        {/* Analytical Step-by-Step Practical Slope Panel (Span 5) */}
-        <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-          
-          {/* Traditional Two-Point Slope Calculation Box */}
-          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/90 font-mono space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <span className="text-xs font-bold uppercase text-slate-700">
-                Two-Point Slope Calculation
-              </span>
-              <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                Practical Method
+        {/* Right: Standardized 6-Step Two-Point Slope Calculation Panel (Span 5) */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+          <div className="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 border border-slate-800 shadow-sm space-y-4">
+            <div className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-bold flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <span>Two-Point Slope Calculation</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60">
+                Physics Practical Method
               </span>
             </div>
 
             {hasEnoughData ? (
-              <div className="space-y-3 text-xs">
-                {/* Selected Points Coordinates */}
-                <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-white border border-slate-200">
-                  <div>
-                    <span className="text-[10px] text-pink-600 font-bold block">Point A (x₁, F₁):</span>
-                    <span className="text-slate-900 font-bold text-[11px]">
-                      ({ptA_x.toFixed(3)} m, {ptA_F.toFixed(2)} N)
+              <div className="space-y-3 font-mono text-xs">
+                
+                {/* 1. Selected Points */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                  <div className="text-slate-400 text-[11px] font-bold">1. Selected Points on Best-Fit Line:</div>
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-blue-400 font-semibold">Point A (x₁, F₁):</span>
+                    <span className="font-bold text-white">
+                      ({ptA_x_disp.toFixed(3)} m, {ptA_F_disp.toFixed(2)} N)
                     </span>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-purple-600 font-bold block">Point B (x₂, F₂):</span>
-                    <span className="text-slate-900 font-bold text-[11px]">
-                      ({ptB_x.toFixed(3)} m, {ptB_F.toFixed(2)} N)
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-orange-400 font-semibold">Point B (x₂, F₂):</span>
+                    <span className="font-bold text-white">
+                      ({ptB_x_disp.toFixed(3)} m, {ptB_F_disp.toFixed(2)} N)
                     </span>
                   </div>
-                </div>
-
-                {/* Slope Formula */}
-                <div className="p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-100 space-y-1">
-                  <div className="text-indigo-900 text-[11px] font-bold">Standard Slope Formula:</div>
-                  <div className="text-xs font-bold text-indigo-800">
-                    Slope (m) = (F₂ &minus; F₁) / (x₂ &minus; x₁) = &Delta;F / &Delta;x
+                  <div className="pt-1 border-t border-slate-800/80 text-[11px] text-slate-400 flex justify-between">
+                    <span>Δx = x₂ − x₁ = {deltaX.toFixed(3)} m</span>
+                    <span>ΔF = F₂ − F₁ = {deltaF.toFixed(2)} N</span>
                   </div>
                 </div>
 
-                {/* Step-by-Step Substitution */}
-                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
-                  <div className="text-slate-500 text-[10px]">Step-by-Step Substitution:</div>
-                  <div className="text-[11px] text-slate-800">
-                    m = ({ptB_F.toFixed(2)} &minus; {ptA_F.toFixed(2)}) / ({ptB_x.toFixed(3)} &minus; {ptA_x.toFixed(3)})
+                {/* 2. Slope Formula */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                  <div className="text-slate-400 text-[11px] font-bold">2. Slope Formula:</div>
+                  <div className="text-indigo-300 text-sm font-bold">
+                    m = (F₂ − F₁) / (x₂ − x₁) = ΔF / Δx
                   </div>
-                  <div className="text-[11px] text-slate-800">
-                    m = {deltaF.toFixed(2)} N / {deltaX.toFixed(3)} m
-                  </div>
-                  <div className="text-sm font-bold text-indigo-700 pt-1 border-t border-slate-100 flex items-center justify-between">
-                    <span>Calculated Slope:</span>
-                    <span>{calculatedSlope.toFixed(2)} N/m</span>
+                  <div className="text-[11px] text-slate-400">
+                    From Hooke's Law: F = kx
                   </div>
                 </div>
 
-                {/* Physical Deduction: Spring Constant k */}
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1">
-                  <div className="text-[10px] text-emerald-800 font-bold uppercase">
-                    Physical Quantity Deduction:
+                {/* 3. Numerical Substitution */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                  <div className="text-slate-400 text-[11px] font-bold">3. Numerical Substitution:</div>
+                  <div className="text-slate-300">
+                    m = ({ptB_F_disp.toFixed(2)} − {ptA_F_disp.toFixed(2)}) / ({ptB_x_disp.toFixed(3)} − {ptA_x_disp.toFixed(3)})
                   </div>
-                  <div className="text-xs text-emerald-950 font-sans">
-                    Since <strong className="font-mono">F = k &bull; x</strong>, the slope <strong className="font-mono">&Delta;F / &Delta;x</strong> directly represents the spring constant <strong className="font-mono">k</strong>.
+                  <div className="text-emerald-400 font-bold">
+                    m = {deltaF.toFixed(2)} / {deltaX.toFixed(3)}
                   </div>
-                  <div className="flex justify-between items-center pt-1 border-t border-emerald-200 text-xs">
-                    <span className="text-emerald-900 font-bold">Spring Constant (k):</span>
-                    <span className="text-base font-bold text-emerald-800 font-mono">
+                </div>
+
+                {/* 4. Final Calculated Slope */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-300 font-bold">4. Final Calculated Slope:</span>
+                  <span className="text-emerald-400 text-sm font-bold">
+                    m = {calculatedSlope.toFixed(2)} N/m
+                  </span>
+                </div>
+
+                {/* 5. Physical Interpretation */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 font-sans">
+                  <div className="text-slate-400 text-[11px] font-bold font-mono">5. Physical Interpretation:</div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Under Hooke's Law within elastic limits, applied force is directly proportional to extension (<strong className="font-mono text-white">F = kx</strong>). The slope <strong className="font-mono text-indigo-300">m = ΔF/Δx</strong> directly represents the <strong className="font-mono text-emerald-300">spring constant k</strong>.
+                  </p>
+                </div>
+
+                {/* 6. Final Experimental Result */}
+                <div className="p-3.5 rounded-xl bg-emerald-950 border border-emerald-800 text-white space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-emerald-300 text-[10px] font-bold uppercase font-mono">
+                        6. Final Experimental Result:
+                      </div>
+                      <div className="text-white font-bold text-sm">
+                        Spring Constant (k = Slope m)
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-emerald-300 font-mono">
                       {experimentalK !== null ? `${experimentalK.toFixed(2)} N/m` : '—'}
                     </span>
                   </div>
+
+                  <div className="pt-2 border-t border-emerald-800/80 flex items-center justify-between text-xs text-emerald-200 font-mono">
+                    <span>Theoretical k: {theoreticalK.toFixed(2)} N/m</span>
+                    {percentageError !== null && (
+                      <span className="font-bold">Deviation: {percentageError.toFixed(2)}%</span>
+                    )}
+                  </div>
                 </div>
+
               </div>
             ) : (
-              <div className="py-6 text-center text-xs text-slate-500 space-y-1">
-                <AlertCircle className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                <p>Record at least 2 non-zero load observations to plot the best-fit line and calculate slope.</p>
+              <div className="py-8 text-center text-xs text-slate-400 space-y-2">
+                <AlertCircle className="w-6 h-6 text-amber-500 mx-auto" />
+                <p>Record at least 2 load observations to draw the best-fit line and calculate slope.</p>
               </div>
             )}
           </div>
-
-          {/* Theoretical vs Experimental Comparison Box */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 font-mono space-y-3">
-            <div className="text-xs font-bold uppercase text-slate-600 border-b border-slate-100 pb-2">
-              Theoretical Reference &amp; Error Analysis
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="text-slate-400 text-[10px]">Theoretical k:</div>
-                <div className="text-base font-bold text-slate-700 mt-0.5">
-                  {theoreticalK.toFixed(2)} <span className="text-[10px]">N/m</span>
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-100">
-                <div className="text-indigo-600 text-[10px]">Experimental k:</div>
-                <div className="text-base font-bold text-indigo-700 mt-0.5">
-                  {experimentalK !== null ? `${experimentalK.toFixed(2)} N/m` : '—'}
-                </div>
-              </div>
-            </div>
-
-            {percentageError !== null && (
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
-                <span className="text-emerald-800">Percentage Deviation:</span>
-                <span className="font-bold text-emerald-700">
-                  {percentageError.toFixed(2)}%
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Experimental Result Card */}
-          {hasEnoughData && experimentalK !== null ? (
-            <div id="hooke-result-card" className="p-5 rounded-2xl bg-emerald-950 text-white border border-emerald-800 shadow-sm space-y-2">
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-bold uppercase">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Experimental Result</span>
-              </div>
-
-              <p className="text-xs sm:text-sm text-emerald-100 font-sans leading-relaxed">
-                The Force&ndash;Extension relationship is linear within the elastic region, verifying Hooke's Law.
-              </p>
-
-              <div className="pt-2 border-t border-emerald-800/80 font-mono text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-emerald-300">Theoretical Spring Constant:</span>
-                  <span className="font-bold text-white">{theoreticalK.toFixed(2)} N/m</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-emerald-300">Experimental Spring Constant:</span>
-                  <span className="font-bold text-white">{experimentalK.toFixed(2)} N/m</span>
-                </div>
-                {percentageError !== null && (
-                  <div className="flex justify-between">
-                    <span className="text-emerald-300">Percentage Error:</span>
-                    <span className="font-bold text-emerald-200">{percentageError.toFixed(2)}%</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 text-[11px] font-sans text-emerald-300">
-                Hooke's Law is verified using the traditional two-point slope practical method.
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-xs font-sans text-center">
-              Complete at least two trial recordings with different loads to finalize the experimental deduction.
-            </div>
-          )}
-
         </div>
 
       </div>
