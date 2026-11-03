@@ -90,22 +90,35 @@ export const VIGraph: React.FC<VIGraphProps> = ({
   const maxXBound = Math.max(defaultMaxX, ...dataPoints.map((d) => d.x * 1.25));
   const maxYBound = Math.max(defaultMaxY, ...dataPoints.map((d) => d.y * 1.25));
 
-  // Compute actual coordinates of Point A and Point B on the best-fit line
+  // Domain along the best-fit line
   const domainMin = lineFit ? Math.max(0, lineFit.minX * 0.8) : 0;
   const domainMax = lineFit ? Math.max(lineFit.maxX * 1.05, domainMin + 1) : defaultMaxX;
   const domainSpan = domainMax - domainMin;
 
-  const ptA_X = domainMin + posRatioA * domainSpan;
-  const ptA_Y = lineFit ? lineFit.m * ptA_X + lineFit.c : 0;
+  const rawPtA_X = domainMin + posRatioA * domainSpan;
+  const rawPtA_Y = lineFit ? lineFit.m * rawPtA_X + lineFit.c : 0;
 
-  const ptB_X = domainMin + posRatioB * domainSpan;
-  const ptB_Y = lineFit ? lineFit.m * ptB_X + lineFit.c : 0;
+  const rawPtB_X = domainMin + posRatioB * domainSpan;
+  const rawPtB_Y = lineFit ? lineFit.m * rawPtB_X + lineFit.c : 0;
 
-  // Traditional slope calculation: Slope = (Y2 - Y1) / (X2 - X1)
-  const deltaX = ptB_X - ptA_X;
-  const deltaY = ptB_Y - ptA_Y;
+  // Coordinate display precision rules
+  const xDecimals = mode === 'find-resistance' ? 3 : 2;
+  const yDecimals = mode === 'find-current' ? 3 : 2;
+
+  // Formatted displayed coordinates for 100% mathematical consistency (Section 8)
+  const ptA_X_disp = Number(rawPtA_X.toFixed(xDecimals));
+  const ptA_Y_disp = Number(rawPtA_Y.toFixed(yDecimals));
+
+  const ptB_X_disp = Number(rawPtB_X.toFixed(xDecimals));
+  const ptB_Y_disp = Number(rawPtB_Y.toFixed(yDecimals));
+
+  // Compute differences directly from the displayed coordinates so:
+  // ΔX = X2 - X1 and ΔY = Y2 - Y1 with zero rounding discrepancy
+  const deltaX = Number((ptB_X_disp - ptA_X_disp).toFixed(xDecimals));
+  const deltaY = Number((ptB_Y_disp - ptA_Y_disp).toFixed(yDecimals));
   const isZeroDivision = Math.abs(deltaX) < 1e-6;
 
+  // Calculate slope m = ΔY / ΔX
   const calculatedSlope = !isZeroDivision ? deltaY / deltaX : 0;
 
   // Physical deductions from slope
@@ -114,6 +127,7 @@ export const VIGraph: React.FC<VIGraphProps> = ({
   let derivedQuantityValue = '';
   let derivedUnit = '';
   let physicalInterpretation = '';
+  let percentageError: number | null = null;
 
   if (mode === 'find-current') {
     derivedQuantityLabel = 'Resistance R';
@@ -122,28 +136,37 @@ export const VIGraph: React.FC<VIGraphProps> = ({
     derivedQuantityValue = rVal > 0 ? rVal.toFixed(2) : '—';
     derivedUnit = 'Ω';
     physicalInterpretation =
-      'On this I vs V graph, the slope ΔI/ΔV represents Conductance G = 1/R (in Siemens, S or A/V). When resistance is held constant across observations, the reciprocal of the slope gives the experimental resistance R = 1/m.';
+      'On this I vs V graph, the slope ΔI / ΔV represents electrical Conductance G = 1/R (in Siemens S, equivalent to A/V). When resistance R is held constant across observations, the reciprocal of the slope directly gives the resistance: R = 1 / m.';
+    if (rVal > 0 && theoreticalResistance) {
+      percentageError = (Math.abs(rVal - theoreticalResistance) / theoreticalResistance) * 100;
+    }
   } else if (mode === 'find-resistance') {
     derivedQuantityLabel = 'Resistance R';
     derivedQuantityFormula = 'R = Slope m';
     derivedQuantityValue = calculatedSlope > 0 ? calculatedSlope.toFixed(2) : '—';
     derivedUnit = 'Ω';
     physicalInterpretation =
-      'On this classic V vs I graph, the slope ΔV/ΔI directly equals the conductor resistance R in Ohms (Ω). A constant straight-line slope verifies linear ohmic behavior (V = IR).';
+      'On this classic V vs I graph, the slope ΔV / ΔI directly represents the resistance R of the conductor in ohms (Ω). A constant straight-line slope verifies linear ohmic behavior (V = IR).';
+    if (calculatedSlope > 0 && theoreticalResistance) {
+      percentageError = (Math.abs(calculatedSlope - theoreticalResistance) / theoreticalResistance) * 100;
+    }
   } else {
     // find-voltage
-    derivedQuantityLabel = 'Current I';
+    derivedQuantityLabel = 'Electric Current I';
     derivedQuantityFormula = 'I = Slope m';
     derivedQuantityValue = calculatedSlope > 0 ? calculatedSlope.toFixed(3) : '—';
     derivedUnit = 'A';
     physicalInterpretation =
-      'On this V vs R graph, the slope ΔV/ΔR directly represents the circuit current I in Amperes (A). When current is kept constant across observations, the voltage drop across a conductor is directly proportional to its resistance (V ∝ R).';
+      'On this V vs R graph, the slope ΔV / ΔR directly represents the circuit current I in amperes (A). When current is kept constant across observations, the potential difference across a conductor is directly proportional to its resistance (V ∝ R).';
+    if (calculatedSlope > 0 && theoreticalCurrent) {
+      percentageError = (Math.abs(calculatedSlope - theoreticalCurrent) / theoreticalCurrent) * 100;
+    }
   }
 
-  // SVG plot viewport dimensions
+  // SVG viewport
   const width = 560;
-  const height = 360;
-  const padding = { top: 30, right: 35, bottom: 55, left: 65 };
+  const height = 350;
+  const padding = { top: 30, right: 30, bottom: 50, left: 65 };
 
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
@@ -151,22 +174,19 @@ export const VIGraph: React.FC<VIGraphProps> = ({
   const scaleX = (val: number) => padding.left + (val / maxXBound) * plotWidth;
   const scaleY = (val: number) => padding.top + plotHeight - (val / maxYBound) * plotHeight;
 
-  // Grid ticks
+  // Grid tick marks
   const numTicks = 5;
   const xTicks = Array.from({ length: numTicks + 1 }, (_, i) => (maxXBound * i) / numTicks);
   const yTicks = Array.from({ length: numTicks + 1 }, (_, i) => (maxYBound * i) / numTicks);
 
-  // Line endpoints on canvas
-  const lineStartCanvas = lineFit ? { x: scaleX(0), y: scaleY(lineFit.c) } : { x: 0, y: 0 };
-  const lineEndCanvas = lineFit
-    ? { x: scaleX(maxXBound), y: scaleY(lineFit.m * maxXBound + lineFit.c) }
-    : { x: 0, y: 0 };
+  // Best-fit line coordinates for drawing across full plot
+  const lineStart = { x: 0, y: lineFit ? lineFit.c : 0 };
+  const lineEnd = { x: maxXBound, y: lineFit ? lineFit.m * maxXBound + lineFit.c : 0 };
 
-  // Coordinates of selected points in pixels
-  const pxA = { x: scaleX(ptA_X), y: scaleY(ptA_Y) };
-  const pxB = { x: scaleX(ptB_X), y: scaleY(ptB_Y) };
-  // Third vertex of right-angled slope triangle: (X2, Y1)
-  const pxTriangleCorner = { x: scaleX(ptB_X), y: scaleY(ptA_Y) };
+  // Pixel coordinates for Point A (Blue), Point B (Orange), and the right-angled slope triangle vertex
+  const pxA = { x: scaleX(ptA_X_disp), y: scaleY(ptA_Y_disp) };
+  const pxB = { x: scaleX(ptB_X_disp), y: scaleY(ptB_Y_disp) };
+  const pxTriangleCorner = { x: scaleX(ptB_X_disp), y: scaleY(ptA_Y_disp) };
 
   const resetToRecommendedPoints = () => {
     setPosRatioA(0.2);
@@ -174,9 +194,9 @@ export const VIGraph: React.FC<VIGraphProps> = ({
   };
 
   return (
-    <div id="graph-analysis-section" className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs">
+    <div id="vi-graph-analysis-card" className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs">
       
-      {/* Graph Header */}
+      {/* Section Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-mono font-bold uppercase mb-1">
@@ -187,12 +207,13 @@ export const VIGraph: React.FC<VIGraphProps> = ({
             {currentConfig.graphTitle}
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
-            Select two well-separated points (A and B) on the best-fit line to calculate the gradient using the standard physics practical formula m = (Y₂ − Y₁) / (X₂ − X₁).
+            {currentConfig.graphSubtitle}
           </p>
         </div>
 
-        {hasEnoughData && (
-          <div className="shrink-0 flex items-center gap-2">
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          {hasEnoughData && (
             <button
               onClick={resetToRecommendedPoints}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-mono font-semibold transition-colors cursor-pointer"
@@ -201,205 +222,242 @@ export const VIGraph: React.FC<VIGraphProps> = ({
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Points</span>
             </button>
-            <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-mono text-emerald-800 flex items-center gap-1.5">
+          )}
+
+          {hasEnoughData ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-mono font-bold">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               <span>Best-Fit Line Active ({dataPoints.length} points)</span>
-            </div>
-          </div>
-        )}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-xs font-mono">
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+              <span>Need &ge; 2 Points</span>
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Main Grid: SVG Canvas + Two-Point Slope Calculation Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 items-start">
+      {/* Main Grid: Left = SVG Plot with Blue Point A, Orange Point B, Right = Consistent 6-Step Calculation Panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 items-stretch">
         
-        {/* Left: SVG Cartesian Graph Canvas (Span 7) */}
-        <div className="lg:col-span-7 bg-slate-50/80 rounded-xl p-3 sm:p-4 border border-slate-200 relative flex flex-col items-center">
-          
-          <div className="w-full aspect-[14/9] max-h-[380px]">
-            <svg
-              viewBox={`0 0 ${width} ${height}`}
-              className="w-full h-full select-none"
-              aria-label={`${currentConfig.graphTitle} laboratory plot`}
-            >
-              {/* Background Cartesian Grid Lines */}
-              <g opacity="0.65">
-                {xTicks.map((xVal, i) => (
-                  <line
-                    key={`grid-x-${i}`}
-                    x1={scaleX(xVal)}
-                    y1={padding.top}
-                    x2={scaleX(xVal)}
-                    y2={padding.top + plotHeight}
-                    stroke="#cbd5e1"
-                    strokeWidth="1"
-                    strokeDasharray="4 4"
-                  />
-                ))}
-                {yTicks.map((yVal, i) => (
-                  <line
-                    key={`grid-y-${i}`}
-                    x1={padding.left}
-                    y1={scaleY(yVal)}
-                    x2={padding.left + plotWidth}
-                    y2={scaleY(yVal)}
-                    stroke="#cbd5e1"
-                    strokeWidth="1"
-                    strokeDasharray="4 4"
-                  />
-                ))}
-              </g>
+        {/* Left: SVG Canvas (Span 7) */}
+        <div className="lg:col-span-7 bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200 flex flex-col justify-between">
+          <div className="w-full flex items-center justify-between text-xs font-mono text-slate-600 mb-2">
+            <span className="font-bold text-slate-800">Coordinate Plot: {currentConfig.name}</span>
+            <div className="flex items-center gap-3 text-[11px]">
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block" />
+                Observations
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-3 h-0.5 bg-indigo-500 inline-block" />
+                Best-Fit Line
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+                Point A
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
+                Point B
+              </span>
+            </div>
+          </div>
 
-              {/* Cartesian Axes */}
+          {/* SVG Plot */}
+          <div className="w-full relative flex items-center justify-center">
+            <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[560px] h-auto select-none">
+              <defs>
+                <linearGradient id="ohmsSlopeTriangleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="#f97316" stopOpacity="0.15" />
+                </linearGradient>
+              </defs>
+
+              {/* Background Canvas */}
+              <rect
+                x={padding.left}
+                y={padding.top}
+                width={plotWidth}
+                height={plotHeight}
+                fill="#ffffff"
+                stroke="#cbd5e1"
+                strokeWidth="1"
+              />
+
+              {/* Grid Lines & X-Ticks */}
+              {xTicks.map((xVal, i) => {
+                const xPx = scaleX(xVal);
+                return (
+                  <g key={`x-tick-${i}`}>
+                    <line
+                      x1={xPx}
+                      y1={padding.top}
+                      x2={xPx}
+                      y2={padding.top + plotHeight}
+                      stroke="#f1f5f9"
+                      strokeWidth="1"
+                    />
+                    <line
+                      x1={xPx}
+                      y1={padding.top + plotHeight}
+                      x2={xPx}
+                      y2={padding.top + plotHeight + 5}
+                      stroke="#94a3b8"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={xPx}
+                      y={padding.top + plotHeight + 18}
+                      textAnchor="middle"
+                      fill="#64748b"
+                      fontSize="9.5"
+                      fontFamily="monospace"
+                    >
+                      {xVal.toFixed(mode === 'find-resistance' ? 2 : 1)}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Grid Lines & Y-Ticks */}
+              {yTicks.map((yVal, i) => {
+                const yPx = scaleY(yVal);
+                return (
+                  <g key={`y-tick-${i}`}>
+                    <line
+                      x1={padding.left}
+                      y1={yPx}
+                      x2={padding.left + plotWidth}
+                      y2={yPx}
+                      stroke="#f1f5f9"
+                      strokeWidth="1"
+                    />
+                    <line
+                      x1={padding.left - 5}
+                      y1={yPx}
+                      x2={padding.left}
+                      y2={yPx}
+                      stroke="#94a3b8"
+                      strokeWidth="1"
+                    />
+                    <text
+                      x={padding.left - 8}
+                      y={yPx + 3.5}
+                      textAnchor="end"
+                      fill="#64748b"
+                      fontSize="9.5"
+                      fontFamily="monospace"
+                    >
+                      {yVal.toFixed(mode === 'find-current' ? 2 : 1)}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Axes lines */}
               <line
                 x1={padding.left}
                 y1={padding.top + plotHeight}
                 x2={padding.left + plotWidth}
                 y2={padding.top + plotHeight}
-                stroke="#1e293b"
-                strokeWidth="2"
+                stroke="#475569"
+                strokeWidth="1.5"
               />
               <line
                 x1={padding.left}
                 y1={padding.top}
                 x2={padding.left}
                 y2={padding.top + plotHeight}
-                stroke="#1e293b"
-                strokeWidth="2"
+                stroke="#475569"
+                strokeWidth="1.5"
               />
 
-              {/* Axis Arrowheads */}
-              <polygon
-                points={`${padding.left + plotWidth},${padding.top + plotHeight - 4} ${padding.left + plotWidth + 6},${padding.top + plotHeight} ${padding.left + plotWidth},${padding.top + plotHeight + 4}`}
-                fill="#1e293b"
-              />
-              <polygon
-                points={`${padding.left - 4},${padding.top} ${padding.left},${padding.top - 6} ${padding.left + 4},${padding.top}`}
-                fill="#1e293b"
-              />
-
-              {/* X-Axis Ticks & Labels */}
-              {xTicks.map((xVal, i) => (
-                <g key={`lbl-x-${i}`}>
-                  <line
-                    x1={scaleX(xVal)}
-                    y1={padding.top + plotHeight}
-                    x2={scaleX(xVal)}
-                    y2={padding.top + plotHeight + 5}
-                    stroke="#1e293b"
-                    strokeWidth="1.5"
-                  />
-                  <text
-                    x={scaleX(xVal)}
-                    y={padding.top + plotHeight + 18}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fontFamily="monospace"
-                    fill="#475569"
-                  >
-                    {mode === 'find-resistance' ? xVal.toFixed(2) : xVal.toFixed(1)}
-                  </text>
-                </g>
-              ))}
-
-              {/* Y-Axis Ticks & Labels */}
-              {yTicks.map((yVal, i) => (
-                <g key={`lbl-y-${i}`}>
-                  <line
-                    x1={padding.left - 5}
-                    y1={scaleY(yVal)}
-                    x2={padding.left}
-                    y2={scaleY(yVal)}
-                    stroke="#1e293b"
-                    strokeWidth="1.5"
-                  />
-                  <text
-                    x={padding.left - 10}
-                    y={scaleY(yVal) + 3}
-                    textAnchor="end"
-                    fontSize="10"
-                    fontFamily="monospace"
-                    fill="#475569"
-                  >
-                    {mode === 'find-current' ? yVal.toFixed(2) : yVal.toFixed(1)}
-                  </text>
-                </g>
-              ))}
-
-              {/* Axis Titles */}
+              {/* X-Axis Label */}
               <text
                 x={padding.left + plotWidth / 2}
                 y={height - 12}
                 textAnchor="middle"
-                fontSize="12"
-                fontFamily="sans-serif"
+                fill="#334155"
+                fontSize="11"
+                fontFamily="monospace"
                 fontWeight="bold"
-                fill="#0f172a"
               >
-                {currentConfig.xAxisLabel} ({currentConfig.xAxisUnit}) &rarr;
+                {currentConfig.xAxisLabel} ({currentConfig.xAxisUnit})
               </text>
 
+              {/* Y-Axis Label */}
               <text
-                x={-(padding.top + plotHeight / 2)}
-                y={18}
+                x={-padding.top - plotHeight / 2}
+                y="18"
                 transform="rotate(-90)"
                 textAnchor="middle"
-                fontSize="12"
-                fontFamily="sans-serif"
+                fill="#334155"
+                fontSize="11"
+                fontFamily="monospace"
                 fontWeight="bold"
-                fill="#0f172a"
               >
-                {currentConfig.yAxisLabel} ({currentConfig.yAxisUnit}) &rarr;
+                {currentConfig.yAxisLabel} ({currentConfig.yAxisUnit})
               </text>
 
-              {/* Best-Fit Straight Line */}
+              {/* Best-Fit Line (Indigo Solid) */}
               {hasEnoughData && lineFit && (
                 <line
-                  x1={lineStartCanvas.x}
-                  y1={lineStartCanvas.y}
-                  x2={lineEndCanvas.x}
-                  y2={lineEndCanvas.y}
+                  x1={scaleX(lineStart.x)}
+                  y1={scaleY(lineStart.y)}
+                  x2={scaleX(lineEnd.x)}
+                  y2={scaleY(lineEnd.y)}
                   stroke="#4f46e5"
                   strokeWidth="2.5"
-                  strokeLinecap="round"
                 />
               )}
 
-              {/* Traditional Right-Angled Slope Triangle between Point A and Point B */}
+              {/* Right-Angled Slope Triangle between Point A (Blue) and Point B (Orange) */}
               {hasEnoughData && !isZeroDivision && (
-                <g>
-                  {/* Shaded triangle area */}
+                <g className="slope-triangle">
                   <polygon
                     points={`${pxA.x},${pxA.y} ${pxTriangleCorner.x},${pxTriangleCorner.y} ${pxB.x},${pxB.y}`}
-                    fill="#6366f1"
-                    fillOpacity="0.10"
+                    fill="url(#ohmsSlopeTriangleGrad)"
+                    stroke="#94a3b8"
+                    strokeWidth="1"
+                    strokeDasharray="3 3"
                   />
 
-                  {/* Horizontal base: ΔX */}
+                  {/* Horizontal Guide: ΔX (Blue dashed) */}
                   <line
                     x1={pxA.x}
                     y1={pxA.y}
                     x2={pxTriangleCorner.x}
                     y2={pxTriangleCorner.y}
-                    stroke="#0284c7"
+                    stroke="#2563eb"
                     strokeWidth="2"
                     strokeDasharray="4 3"
                   />
 
-                  {/* Vertical height: ΔY */}
+                  {/* Vertical Guide: ΔY (Orange dashed) */}
                   <line
                     x1={pxTriangleCorner.x}
                     y1={pxTriangleCorner.y}
                     x2={pxB.x}
                     y2={pxB.y}
-                    stroke="#dc2626"
+                    stroke="#ea580c"
                     strokeWidth="2"
                     strokeDasharray="4 3"
                   />
 
-                  {/* Triangle Corner Marker */}
-                  <circle cx={pxTriangleCorner.x} cy={pxTriangleCorner.y} r="2.5" fill="#475569" />
+                  {/* Corner right-angle symbol */}
+                  <rect
+                    x={pxTriangleCorner.x - 7}
+                    y={pxTriangleCorner.y - 7}
+                    width="7"
+                    height="7"
+                    fill="none"
+                    stroke="#64748b"
+                    strokeWidth="1"
+                  />
 
-                  {/* ΔX label */}
+                  {/* ΔX Label */}
                   <text
                     x={(pxA.x + pxTriangleCorner.x) / 2}
                     y={pxTriangleCorner.y + 14}
@@ -407,27 +465,27 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                     fontSize="9.5"
                     fontFamily="monospace"
                     fontWeight="bold"
-                    fill="#0369a1"
+                    fill="#1d4ed8"
                   >
-                    ΔX = {Math.abs(deltaX).toFixed(2)} {currentConfig.xAxisUnit}
+                    ΔX = {deltaX.toFixed(xDecimals)} {currentConfig.xAxisUnit}
                   </text>
 
-                  {/* ΔY label */}
+                  {/* ΔY Label */}
                   <text
                     x={pxTriangleCorner.x + 8}
-                    y={(pxTriangleCorner.y + pxB.y) / 2}
+                    y={(pxTriangleCorner.y + pxB.y) / 2 + 3}
                     textAnchor="start"
                     fontSize="9.5"
                     fontFamily="monospace"
                     fontWeight="bold"
-                    fill="#b91c1c"
+                    fill="#c2410c"
                   >
-                    ΔY = {Math.abs(deltaY).toFixed(3)} {currentConfig.yAxisUnit}
+                    ΔY = {deltaY.toFixed(yDecimals)} {currentConfig.yAxisUnit}
                   </text>
                 </g>
               )}
 
-              {/* Actual Recorded Data Points (Circles) */}
+              {/* Experimental Observation Points */}
               {dataPoints.map((pt, idx) => {
                 const cx = scaleX(pt.x);
                 const cy = scaleY(pt.y);
@@ -450,19 +508,18 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                 );
               })}
 
-              {/* Point A Marker on the Line */}
+              {/* Point A (Blue Marker) */}
               {hasEnoughData && (
-                <g className="cursor-pointer">
-                  <circle cx={pxA.x} cy={pxA.y} r="8" fill="#0284c7" fillOpacity="0.25" />
-                  <circle cx={pxA.x} cy={pxA.y} r="5" fill="#0284c7" stroke="#ffffff" strokeWidth="2" />
+                <g>
+                  <circle cx={pxA.x} cy={pxA.y} r="8" fill="#2563eb" fillOpacity="0.3" />
+                  <circle cx={pxA.x} cy={pxA.y} r="5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
                   <rect
-                    x={pxA.x - 28}
+                    x={pxA.x - 30}
                     y={pxA.y - 24}
-                    width="56"
+                    width="60"
                     height="16"
                     rx="4"
-                    fill="#0f172a"
-                    fillOpacity="0.9"
+                    fill="#1e3a8a"
                   />
                   <text
                     x={pxA.x}
@@ -471,26 +528,25 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                     fontSize="8.5"
                     fontFamily="monospace"
                     fontWeight="bold"
-                    fill="#38bdf8"
+                    fill="#ffffff"
                   >
-                    Pt A ({ptA_X.toFixed(2)}, {ptA_Y.toFixed(2)})
+                    A ({ptA_X_disp.toFixed(xDecimals)}, {ptA_Y_disp.toFixed(yDecimals)})
                   </text>
                 </g>
               )}
 
-              {/* Point B Marker on the Line */}
+              {/* Point B (Orange Marker) */}
               {hasEnoughData && (
-                <g className="cursor-pointer">
-                  <circle cx={pxB.x} cy={pxB.y} r="8" fill="#d97706" fillOpacity="0.25" />
-                  <circle cx={pxB.x} cy={pxB.y} r="5" fill="#d97706" stroke="#ffffff" strokeWidth="2" />
+                <g>
+                  <circle cx={pxB.x} cy={pxB.y} r="8" fill="#ea580c" fillOpacity="0.3" />
+                  <circle cx={pxB.x} cy={pxB.y} r="5" fill="#ea580c" stroke="#ffffff" strokeWidth="2" />
                   <rect
-                    x={pxB.x - 28}
+                    x={pxB.x - 30}
                     y={pxB.y - 24}
-                    width="56"
+                    width="60"
                     height="16"
                     rx="4"
-                    fill="#0f172a"
-                    fillOpacity="0.9"
+                    fill="#7c2d12"
                   />
                   <text
                     x={pxB.x}
@@ -499,9 +555,9 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                     fontSize="8.5"
                     fontFamily="monospace"
                     fontWeight="bold"
-                    fill="#fbbf24"
+                    fill="#ffffff"
                   >
-                    Pt B ({ptB_X.toFixed(2)}, {ptB_Y.toFixed(2)})
+                    B ({ptB_X_disp.toFixed(xDecimals)}, {ptB_Y_disp.toFixed(yDecimals)})
                   </text>
                 </g>
               )}
@@ -517,19 +573,18 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                   Adjust Point Positions Along Best-Fit Line:
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  Select well-separated points
+                  Select well-separated points to minimize reading errors
                 </span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                {/* Point A Slider */}
+                {/* Point A Slider (Blue) */}
                 <div>
                   <div className="flex justify-between items-center text-[11px] mb-1">
-                    <span className="text-sky-700 font-bold flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-sky-600 inline-block" />
-                      Point A (X₁): {ptA_X.toFixed(2)} {currentConfig.xAxisUnit}
+                    <span className="text-blue-700 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
+                      Point A (X₁, Y₁): ({ptA_X_disp.toFixed(xDecimals)} {currentConfig.xAxisUnit}, {ptA_Y_disp.toFixed(yDecimals)} {currentConfig.yAxisUnit})
                     </span>
-                    <span className="text-slate-400">Y₁ = {ptA_Y.toFixed(3)}</span>
                   </div>
                   <input
                     type="range"
@@ -538,19 +593,18 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                     step="0.01"
                     value={posRatioA}
                     onChange={(e) => setPosRatioA(parseFloat(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-sky-600"
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     aria-label="Adjust position of Point A along best-fit line"
                   />
                 </div>
 
-                {/* Point B Slider */}
+                {/* Point B Slider (Orange) */}
                 <div>
                   <div className="flex justify-between items-center text-[11px] mb-1">
-                    <span className="text-amber-700 font-bold flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-amber-600 inline-block" />
-                      Point B (X₂): {ptB_X.toFixed(2)} {currentConfig.xAxisUnit}
+                    <span className="text-orange-700 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-orange-600 inline-block" />
+                      Point B (X₂, Y₂): ({ptB_X_disp.toFixed(xDecimals)} {currentConfig.xAxisUnit}, {ptB_Y_disp.toFixed(yDecimals)} {currentConfig.yAxisUnit})
                     </span>
-                    <span className="text-slate-400">Y₂ = {ptB_Y.toFixed(3)}</span>
                   </div>
                   <input
                     type="range"
@@ -559,7 +613,7 @@ export const VIGraph: React.FC<VIGraphProps> = ({
                     step="0.01"
                     value={posRatioB}
                     onChange={(e) => setPosRatioB(parseFloat(e.target.value))}
-                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
                     aria-label="Adjust position of Point B along best-fit line"
                   />
                 </div>
@@ -567,7 +621,6 @@ export const VIGraph: React.FC<VIGraphProps> = ({
             </div>
           )}
 
-          {/* Insufficient Data Warning Banner */}
           {!hasEnoughData && (
             <div className="mt-3 w-full p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -578,16 +631,14 @@ export const VIGraph: React.FC<VIGraphProps> = ({
           )}
 
           <div className="mt-2 text-[11px] text-slate-500 font-mono text-center">
-            * Blue dashed line = ΔX base, Red dashed line = ΔY height of slope triangle.
+            * Blue point = Point A, Orange point = Point B. Dashed guides show ΔX base and ΔY height.
           </div>
         </div>
 
-        {/* Right: Step-by-Step Two-Point Slope Calculation Panel (Span 5) */}
+        {/* Right: Standardized 6-Step Two-Point Slope Calculation Panel (Span 5) */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          
-          {/* Step-by-Step Slope Calculation Card */}
-          <div className="bg-slate-900 text-white rounded-xl p-5 border border-slate-800 shadow-xs">
-            <div className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-bold mb-3 flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 border border-slate-800 shadow-sm space-y-4">
+            <div className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-bold flex items-center justify-between border-b border-slate-800 pb-2.5">
               <span>Two-Point Slope Calculation</span>
               <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60">
                 Physics Practical Method
@@ -598,107 +649,98 @@ export const VIGraph: React.FC<VIGraphProps> = ({
               <div className="space-y-3 font-mono text-xs">
                 
                 {/* 1. Selected Points */}
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
                   <div className="text-slate-400 text-[11px] font-bold">1. Selected Points on Best-Fit Line:</div>
                   <div className="flex justify-between text-slate-300">
-                    <span className="text-sky-400 font-semibold">Point A (X₁, Y₁):</span>
-                    <span>({ptA_X.toFixed(2)} {currentConfig.xAxisUnit}, {ptA_Y.toFixed(3)} {currentConfig.yAxisUnit})</span>
+                    <span className="text-blue-400 font-semibold">Point A (X₁, Y₁):</span>
+                    <span className="font-bold text-white">
+                      ({ptA_X_disp.toFixed(xDecimals)} {currentConfig.xAxisUnit}, {ptA_Y_disp.toFixed(yDecimals)} {currentConfig.yAxisUnit})
+                    </span>
                   </div>
                   <div className="flex justify-between text-slate-300">
-                    <span className="text-amber-400 font-semibold">Point B (X₂, Y₂):</span>
-                    <span>({ptB_X.toFixed(2)} {currentConfig.xAxisUnit}, {ptB_Y.toFixed(3)} {currentConfig.yAxisUnit})</span>
+                    <span className="text-orange-400 font-semibold">Point B (X₂, Y₂):</span>
+                    <span className="font-bold text-white">
+                      ({ptB_X_disp.toFixed(xDecimals)} {currentConfig.xAxisUnit}, {ptB_Y_disp.toFixed(yDecimals)} {currentConfig.yAxisUnit})
+                    </span>
+                  </div>
+                  <div className="pt-1 border-t border-slate-800/80 text-[11px] text-slate-400 flex justify-between">
+                    <span>ΔX = X₂ − X₁ = {deltaX.toFixed(xDecimals)} {currentConfig.xAxisUnit}</span>
+                    <span>ΔY = Y₂ − Y₁ = {deltaY.toFixed(yDecimals)} {currentConfig.yAxisUnit}</span>
                   </div>
                 </div>
 
                 {/* 2. Slope Formula */}
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                   <div className="text-slate-400 text-[11px] font-bold">2. Slope Formula:</div>
-                  <div className="text-indigo-300 text-sm font-bold mt-0.5">
-                    Slope (m) = (Y₂ − Y₁) / (X₂ − X₁) = ΔY / ΔX
+                  <div className="text-indigo-300 text-sm font-bold">
+                    m = (Y₂ − Y₁) / (X₂ − X₁) = ΔY / ΔX
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    {mode === 'find-current' && 'm = (I₂ − I₁) / (V₂ − V₁) = ΔI / ΔV'}
+                    {mode === 'find-resistance' && 'm = (V₂ − V₁) / (I₂ − I₁) = ΔV / ΔI'}
+                    {mode === 'find-voltage' && 'm = (V₂ − V₁) / (R₂ − R₁) = ΔV / ΔR'}
                   </div>
                 </div>
 
                 {/* 3. Numerical Substitution */}
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
                   <div className="text-slate-400 text-[11px] font-bold">3. Numerical Substitution:</div>
-                  <div className="text-slate-300 mt-0.5">
-                    m = ({ptB_Y.toFixed(3)} − {ptA_Y.toFixed(3)}) / ({ptB_X.toFixed(2)} − {ptA_X.toFixed(2)})
+                  <div className="text-slate-300">
+                    m = ({ptB_Y_disp.toFixed(yDecimals)} − {ptA_Y_disp.toFixed(yDecimals)}) / ({ptB_X_disp.toFixed(xDecimals)} − {ptA_X_disp.toFixed(xDecimals)})
                   </div>
-                  <div className="text-slate-400 text-[11px] mt-0.5">
-                    m = {deltaY.toFixed(3)} / {deltaX.toFixed(2)}
+                  <div className="text-emerald-400 font-bold">
+                    m = {deltaY.toFixed(yDecimals)} / {deltaX.toFixed(xDecimals)}
                   </div>
                 </div>
 
-                {/* 4. Evaluated Slope */}
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <span className="text-slate-400 font-bold">4. Final Calculated Slope:</span>
+                {/* 4. Final Calculated Slope */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-300 font-bold">4. Final Calculated Slope:</span>
                   <span className="text-emerald-400 text-sm font-bold">
                     m = {calculatedSlope.toFixed(4)} {currentConfig.slopeUnit}
                   </span>
                 </div>
 
-                {/* 5. Physical Quantity Deduction */}
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-                  <div>
-                    <div className="text-slate-400 text-[10px]">{derivedQuantityFormula}:</div>
-                    <div className="text-slate-200 font-bold">{derivedQuantityLabel}:</div>
-                  </div>
-                  <span className="text-base font-bold text-amber-300 font-mono">
-                    {derivedQuantityValue} {derivedUnit}
-                  </span>
+                {/* 5. Physical Interpretation */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 font-sans">
+                  <div className="text-slate-400 text-[11px] font-bold font-mono">5. Physical Interpretation:</div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {physicalInterpretation}
+                  </p>
                 </div>
 
-              </div>
-            ) : (
-              <div className="py-6 text-center text-xs text-slate-400 font-mono">
-                Log at least 2 trials in {currentConfig.shortName} to view the traditional two-point slope calculation.
-              </div>
-            )}
-          </div>
-
-          {/* Physical Interpretation & Result Card */}
-          <div className="bg-emerald-50/70 rounded-xl p-5 border border-emerald-200/90 shadow-xs">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-800 uppercase tracking-wider mb-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Physical Interpretation &amp; Result</span>
-            </div>
-
-            {hasEnoughData ? (
-              <div className="space-y-3 text-xs sm:text-sm text-slate-800">
-                <p className="text-slate-700 leading-relaxed font-sans">
-                  {physicalInterpretation}
-                </p>
-
-                <div className="p-3 rounded-lg bg-white border border-emerald-200 font-mono text-xs space-y-1.5">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Investigation Mode:</span>
-                    <span className="font-bold text-slate-900">{currentConfig.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Calculated Two-Point Slope:</span>
-                    <span className="font-bold text-indigo-700">
-                      {calculatedSlope.toFixed(4)} {currentConfig.slopeUnit}
-                    </span>
-                  </div>
-                  <div className="flex justify-between pt-1 border-t border-slate-100">
-                    <span className="text-slate-500">Deduce {derivedQuantityLabel}:</span>
-                    <span className="font-bold text-emerald-700">
+                {/* 6. Final Experimental Result */}
+                <div className="p-3.5 rounded-xl bg-emerald-950 border border-emerald-800 text-white space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-emerald-300 text-[10px] font-bold uppercase font-mono">
+                        6. Final Experimental Result:
+                      </div>
+                      <div className="text-white font-bold text-sm">
+                        {derivedQuantityLabel} ({derivedQuantityFormula})
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-emerald-300 font-mono">
                       {derivedQuantityValue} {derivedUnit}
                     </span>
                   </div>
+
+                  {percentageError !== null && (
+                    <div className="pt-2 border-t border-emerald-800/80 flex items-center justify-between text-xs text-emerald-200 font-mono">
+                      <span>Percentage Deviation:</span>
+                      <span className="font-bold">{percentageError.toFixed(2)}%</span>
+                    </div>
+                  )}
                 </div>
 
-                <p className="text-[11px] text-slate-600 leading-relaxed font-sans">
-                  Using two well-separated points on the best-fit line minimizes optical reading errors, representing the standard practice in board physics practical examinations.
-                </p>
               </div>
             ) : (
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Record observations in the table above to perform two-point gradient deduction and determine the physical quantity.
-              </p>
+              <div className="py-8 text-center text-xs text-slate-400 space-y-2">
+                <AlertCircle className="w-6 h-6 text-amber-500 mx-auto" />
+                <p>Record at least 2 readings in this mode to draw the best-fit line and calculate slope.</p>
+              </div>
             )}
           </div>
-
         </div>
 
       </div>
