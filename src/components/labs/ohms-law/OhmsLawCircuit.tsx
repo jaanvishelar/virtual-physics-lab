@@ -1,6 +1,6 @@
-import React from 'react';
 import { AnalogMeter } from './AnalogMeter';
 import { ToggleLeft, ToggleRight, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { OhmsLawMode } from '../../../types';
 
 interface OhmsLawCircuitProps {
   voltage: number;
@@ -9,6 +9,7 @@ interface OhmsLawCircuitProps {
   isSwitchOn: boolean;
   onToggleSwitch: () => void;
   rheostatResistance: number;
+  mode?: OhmsLawMode;
 }
 
 export const OhmsLawCircuit: React.FC<OhmsLawCircuitProps> = ({
@@ -18,6 +19,7 @@ export const OhmsLawCircuit: React.FC<OhmsLawCircuitProps> = ({
   isSwitchOn,
   onToggleSwitch,
   rheostatResistance,
+  mode = 'find-current',
 }) => {
   const activeCurrent = isSwitchOn ? current : 0;
   const activeVoltage = isSwitchOn ? voltage : 0;
@@ -367,7 +369,19 @@ export const OhmsLawCircuit: React.FC<OhmsLawCircuitProps> = ({
           )}
         </div>
         <div className="text-slate-400">
-          Formula: <span className="text-indigo-300 font-bold">I = V / R</span> = {voltage.toFixed(1)} V / {resistance.toFixed(1)} Ω = <span className="text-emerald-400 font-bold">{activeCurrent.toFixed(3)} A</span>
+          {mode === 'find-resistance' ? (
+            <>
+              Formula: <span className="text-amber-300 font-bold">R = V / I</span> = {voltage.toFixed(1)} V / {current > 0 ? current.toFixed(3) : '0.000'} A = <span className="text-amber-400 font-bold">{resistance.toFixed(1)} Ω</span>
+            </>
+          ) : mode === 'find-voltage' ? (
+            <>
+              Formula: <span className="text-indigo-300 font-bold">V = I × R</span> = {current.toFixed(3)} A × {resistance.toFixed(1)} Ω = <span className="text-indigo-400 font-bold">{isSwitchOn ? voltage.toFixed(1) : '0.0'} V</span>
+            </>
+          ) : (
+            <>
+              Formula: <span className="text-emerald-300 font-bold">I = V / R</span> = {voltage.toFixed(1)} V / {resistance.toFixed(1)} Ω = <span className="text-emerald-400 font-bold">{activeCurrent.toFixed(3)} A</span>
+            </>
+          )}
         </div>
       </div>
     </div>

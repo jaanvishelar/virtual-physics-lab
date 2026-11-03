@@ -66,12 +66,15 @@ export interface DoubtDraft {
   description: string;
 }
 
+export type OhmsLawMode = 'find-current' | 'find-resistance' | 'find-voltage';
+
 export interface ObservationReading {
   id: string;
   srNo: number;
   voltage: number;
   current: number;
   resistance: number;
+  mode?: OhmsLawMode;
   timestamp: number;
 }
 
