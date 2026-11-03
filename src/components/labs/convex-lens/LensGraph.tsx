@@ -68,22 +68,30 @@ export const LensGraph: React.FC<LensGraphProps> = ({
   const domainMax = lineFit ? Math.min(-0.005, lineFit.maxX * 0.9) : -0.015;
   const domainSpan = domainMax - domainMin;
 
-  // Actual coordinates of Point A (X₁, Y₁) and Point B (X₂, Y₂) on the best-fit line
-  const ptA_oneOverU = domainMin + posRatioA * domainSpan;
-  const ptA_oneOverV = lineFit ? lineFit.m * ptA_oneOverU + lineFit.c : 1.0 * ptA_oneOverU + (1 / theoreticalFocalLength);
+  // Raw coordinates
+  const rawPtA_oneOverU = domainMin + posRatioA * domainSpan;
+  const rawPtA_oneOverV = lineFit ? lineFit.m * rawPtA_oneOverU + lineFit.c : 1.0 * rawPtA_oneOverU + (1 / theoreticalFocalLength);
 
-  const ptB_oneOverU = domainMin + posRatioB * domainSpan;
-  const ptB_oneOverV = lineFit ? lineFit.m * ptB_oneOverU + lineFit.c : 1.0 * ptB_oneOverU + (1 / theoreticalFocalLength);
+  const rawPtB_oneOverU = domainMin + posRatioB * domainSpan;
+  const rawPtB_oneOverV = lineFit ? lineFit.m * rawPtB_oneOverU + lineFit.c : 1.0 * rawPtB_oneOverU + (1 / theoreticalFocalLength);
 
-  // Traditional two-point slope calculation: m = (Y₂ - Y₁) / (X₂ - X₁)
-  const deltaX = ptB_oneOverU - ptA_oneOverU;
-  const deltaY = ptB_oneOverV - ptA_oneOverV;
+  // Formatted displayed coordinates (4 decimals for 1/u and 1/v in cm⁻¹)
+  const ptA_X_disp = Number(rawPtA_oneOverU.toFixed(4));
+  const ptA_Y_disp = Number(rawPtA_oneOverV.toFixed(4));
+
+  const ptB_X_disp = Number(rawPtB_oneOverU.toFixed(4));
+  const ptB_Y_disp = Number(rawPtB_oneOverV.toFixed(4));
+
+  // Differences computed directly from displayed coordinates for 100% numerical consistency
+  const deltaX = Number((ptB_X_disp - ptA_X_disp).toFixed(4));
+  const deltaY = Number((ptB_Y_disp - ptA_Y_disp).toFixed(4));
   const isZeroDivision = Math.abs(deltaX) < 1e-7;
 
+  // Slope: m = Δ(1/v) / Δ(1/u)
   const calculatedSlope = !isZeroDivision ? deltaY / deltaX : 1.0;
 
-  // Y-intercept calculation from two-point method: c = Y₁ - m * X₁
-  const calculatedIntercept = ptA_oneOverV - calculatedSlope * ptA_oneOverU;
+  // Y-intercept calculation: c = Y₁ − m · X₁
+  const calculatedIntercept = Number((ptA_Y_disp - calculatedSlope * ptA_X_disp).toFixed(4));
 
   // Experimental focal length f = 1 / intercept
   const experimentalF = calculatedIntercept > 0.001 ? 1 / calculatedIntercept : null;
@@ -93,8 +101,8 @@ export const LensGraph: React.FC<LensGraphProps> = ({
       : null;
 
   // SVG dimensions
-  const graphWidth = 600;
-  const graphHeight = 340;
+  const graphWidth = 560;
+  const graphHeight = 350;
   const padding = { top: 30, right: 35, bottom: 50, left: 65 };
 
   const plotWidth = graphWidth - padding.left - padding.right;
@@ -112,10 +120,10 @@ export const LensGraph: React.FC<LensGraphProps> = ({
   const regLineEndX = maxX;
   const regLineEndY = lineFit ? lineFit.c : 0.05;
 
-  // Pixel coordinates for Point A, Point B, and the slope triangle vertex
-  const pxA = { x: scaleX(ptA_oneOverU), y: scaleY(ptA_oneOverV) };
-  const pxB = { x: scaleX(ptB_oneOverU), y: scaleY(ptB_oneOverV) };
-  const pxCorner = { x: scaleX(ptB_oneOverU), y: scaleY(ptA_oneOverV) };
+  // Pixel coordinates for Point A (Blue), Point B (Orange), and triangle corner
+  const pxA = { x: scaleX(ptA_X_disp), y: scaleY(ptA_Y_disp) };
+  const pxB = { x: scaleX(ptB_X_disp), y: scaleY(ptB_Y_disp) };
+  const pxCorner = { x: scaleX(ptB_X_disp), y: scaleY(ptA_Y_disp) };
 
   const resetToRecommendedPoints = () => {
     setPosRatioA(0.2);
@@ -123,10 +131,10 @@ export const LensGraph: React.FC<LensGraphProps> = ({
   };
 
   return (
-    <div id="lens-graph-analysis-section" className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/90 shadow-xs space-y-6">
+    <div id="lens-graph-analysis-card" className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/90 shadow-xs">
       
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200">
         <div>
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-mono font-bold uppercase mb-1">
             <LineChart className="w-3.5 h-3.5" />
@@ -136,22 +144,23 @@ export const LensGraph: React.FC<LensGraphProps> = ({
             Determination of Focal Length &bull; 1/v versus 1/u Graph
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
-            Plotting reciprocal image distance (1/v) against reciprocal object distance (1/u). Select two points on the best-fit line to calculate slope m and Y-intercept c = 1/f.
+            Plotting reciprocal image distance (1/v) against reciprocal object distance (1/u). Select two well-separated points on the best-fit line to calculate slope m and Y-intercept c = 1/f.
           </p>
         </div>
 
-        {/* Action Buttons & Status */}
+        {/* Action Controls */}
         <div className="flex items-center gap-2 shrink-0">
           {hasEnoughData && (
             <button
               onClick={resetToRecommendedPoints}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-mono font-semibold transition-colors cursor-pointer"
-              title="Reset to recommended points"
+              title="Reset to recommended well-separated points"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Points</span>
             </button>
           )}
+
           {hasEnoughData ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-mono font-bold">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -166,36 +175,53 @@ export const LensGraph: React.FC<LensGraphProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      {/* Main Grid: Left = SVG Plot, Right = Standardized 6-Step Calculation Panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 items-stretch">
         
-        {/* SVG Plot Column (7 Cols) */}
-        <div className="lg:col-span-7 bg-slate-950 p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-inner select-none flex flex-col justify-between">
-          <div className="w-full flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
-            <span className="text-slate-300 font-bold">Cartesian Plot: 1/v vs 1/u</span>
+        {/* Left: SVG Canvas (Span 7) */}
+        <div className="lg:col-span-7 bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200 flex flex-col justify-between">
+          <div className="w-full flex items-center justify-between text-xs font-mono text-slate-600 mb-2">
+            <span className="font-bold text-slate-800">Coordinate Plot: 1/v (cm⁻¹) vs 1/u (cm⁻¹)</span>
             <div className="flex items-center gap-3 text-[11px]">
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 inline-block" />
                 Observations
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-4 h-0.5 bg-indigo-400 inline-block" />
+                <span className="w-3 h-0.5 bg-indigo-500 inline-block" />
                 Best-Fit Line
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-pink-500 inline-block" />
-                Selected Points
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+                Point A
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-orange-500 inline-block" />
+                Point B
               </span>
             </div>
           </div>
 
+          {/* SVG Plot */}
           <div className="w-full relative flex items-center justify-center">
-            <svg viewBox={`0 0 ${graphWidth} ${graphHeight}`} className="w-full h-auto block">
+            <svg viewBox={`0 0 ${graphWidth} ${graphHeight}`} className="w-full max-w-[560px] h-auto select-none">
               <defs>
-                <linearGradient id="lensSlopeTriangleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#ec4899" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.10" />
+                <linearGradient id="lensSlopeTriangleGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
+                  <stop offset="100%" stopColor="#f97316" stopOpacity="0.15" />
                 </linearGradient>
               </defs>
+
+              {/* Background Canvas */}
+              <rect
+                x={padding.left}
+                y={padding.top}
+                width={plotWidth}
+                height={plotHeight}
+                fill="#ffffff"
+                stroke="#cbd5e1"
+                strokeWidth="1"
+              />
 
               {/* Horizontal Grid lines (Y = 0.01, 0.02, 0.03, 0.04, 0.05, 0.06) */}
               {[0.01, 0.02, 0.03, 0.04, 0.05, 0.06].map((val) => {
@@ -207,9 +233,16 @@ export const LensGraph: React.FC<LensGraphProps> = ({
                       y1={yPos}
                       x2={padding.left + plotWidth}
                       y2={yPos}
-                      stroke="#1e293b"
+                      stroke="#f1f5f9"
                       strokeWidth="1"
-                      strokeDasharray="4 4"
+                    />
+                    <line
+                      x1={padding.left - 5}
+                      y1={yPos}
+                      x2={padding.left}
+                      y2={yPos}
+                      stroke="#94a3b8"
+                      strokeWidth="1"
                     />
                     <text
                       x={padding.left - 8}
@@ -235,9 +268,16 @@ export const LensGraph: React.FC<LensGraphProps> = ({
                       y1={padding.top}
                       x2={xPos}
                       y2={padding.top + plotHeight}
-                      stroke="#1e293b"
+                      stroke="#f1f5f9"
                       strokeWidth="1"
-                      strokeDasharray="4 4"
+                    />
+                    <line
+                      x1={xPos}
+                      y1={padding.top + plotHeight}
+                      x2={xPos}
+                      y2={padding.top + plotHeight + 5}
+                      stroke="#94a3b8"
+                      strokeWidth="1"
                     />
                     <text
                       x={xPos}
@@ -253,23 +293,21 @@ export const LensGraph: React.FC<LensGraphProps> = ({
                 );
               })}
 
-              {/* Solid Coordinate Axes */}
-              {/* X-axis (Y = 0) */}
+              {/* Solid Axes lines */}
               <line
                 x1={padding.left}
                 y1={scaleY(0)}
                 x2={padding.left + plotWidth}
                 y2={scaleY(0)}
-                stroke="#94a3b8"
+                stroke="#475569"
                 strokeWidth="1.5"
               />
-              {/* Y-axis (X = 0, at right edge of negative domain) */}
               <line
                 x1={scaleX(0)}
                 y1={padding.top}
                 x2={scaleX(0)}
                 y2={padding.top + plotHeight}
-                stroke="#94a3b8"
+                stroke="#475569"
                 strokeWidth="1.5"
               />
 
@@ -277,26 +315,26 @@ export const LensGraph: React.FC<LensGraphProps> = ({
               <text
                 x={padding.left + plotWidth / 2}
                 y={graphHeight - 8}
-                fill="#94a3b8"
+                fill="#334155"
                 fontSize="10"
                 fontFamily="monospace"
                 fontWeight="bold"
                 textAnchor="middle"
               >
-                1/u (cm⁻¹) &rarr; Signed Object Distance
+                1/u (cm⁻¹) &rarr; Reciprocal Object Distance
               </text>
 
               <text
                 x={18}
                 y={padding.top + plotHeight / 2}
-                fill="#94a3b8"
+                fill="#334155"
                 fontSize="10"
                 fontFamily="monospace"
                 fontWeight="bold"
                 textAnchor="middle"
                 transform={`rotate(-90 18 ${padding.top + plotHeight / 2})`}
               >
-                1/v (cm⁻¹) &rarr; Signed Image Distance
+                1/v (cm⁻¹) &rarr; Reciprocal Image Distance
               </text>
 
               {/* Theoretical Line of Fit (Reference: slope = 1, intercept = 1/20 = 0.05) */}
@@ -305,129 +343,138 @@ export const LensGraph: React.FC<LensGraphProps> = ({
                 y1={scaleY(-0.045 + 0.05)}
                 x2={scaleX(0.00)}
                 y2={scaleY(0.05)}
-                stroke="#38bdf8"
+                stroke="#f59e0b"
                 strokeWidth="1.5"
                 strokeDasharray="4 4"
-                opacity="0.5"
+                opacity="0.7"
               />
 
-              {/* Best-Fit Line from Recorded Data */}
+              {/* Best-Fit Straight Line (Indigo Solid) */}
               {hasEnoughData && (
                 <line
                   x1={scaleX(regLineStartX)}
                   y1={scaleY(regLineStartY)}
                   x2={scaleX(regLineEndX)}
                   y2={scaleY(regLineEndY)}
-                  stroke="#818cf8"
+                  stroke="#4f46e5"
                   strokeWidth="2.5"
                 />
               )}
 
-              {/* Traditional Practical Slope Triangle */}
+              {/* Right-Angled Slope Triangle between Point A (Blue) and Point B (Orange) */}
               {hasEnoughData && !isZeroDivision && (
                 <g className="slope-triangle">
                   <polygon
                     points={`${pxA.x},${pxA.y} ${pxCorner.x},${pxCorner.y} ${pxB.x},${pxB.y}`}
-                    fill="url(#lensSlopeTriangleGrad)"
-                    stroke="#ec4899"
-                    strokeWidth="1.5"
+                    fill="url(#lensSlopeTriangleGrad2)"
+                    stroke="#94a3b8"
+                    strokeWidth="1"
                     strokeDasharray="3 3"
                   />
 
-                  {/* Horizontal base: Δ(1/u) */}
+                  {/* Horizontal Guide: Δ(1/u) (Blue dashed) */}
                   <line
                     x1={pxA.x}
                     y1={pxA.y}
                     x2={pxCorner.x}
                     y2={pxCorner.y}
-                    stroke="#38bdf8"
+                    stroke="#2563eb"
                     strokeWidth="2"
-                    strokeDasharray="4 2"
+                    strokeDasharray="4 3"
                   />
 
-                  {/* Vertical height: Δ(1/v) */}
+                  {/* Vertical Guide: Δ(1/v) (Orange dashed) */}
                   <line
                     x1={pxCorner.x}
                     y1={pxCorner.y}
                     x2={pxB.x}
                     y2={pxB.y}
-                    stroke="#a855f7"
+                    stroke="#ea580c"
                     strokeWidth="2"
-                    strokeDasharray="4 2"
+                    strokeDasharray="4 3"
+                  />
+
+                  {/* Corner right angle */}
+                  <rect
+                    x={pxCorner.x - 7}
+                    y={pxCorner.y - 7}
+                    width="7"
+                    height="7"
+                    fill="none"
+                    stroke="#64748b"
+                    strokeWidth="1"
                   />
 
                   {/* Labels */}
                   <text
                     x={(pxA.x + pxCorner.x) / 2}
-                    y={pxA.y + 14}
-                    fill="#38bdf8"
+                    y={pxCorner.y + 14}
+                    fill="#1d4ed8"
                     fontSize="9"
                     fontFamily="monospace"
                     fontWeight="bold"
                     textAnchor="middle"
                   >
-                    &Delta;(1/u) = {Math.abs(deltaX).toFixed(4)}
+                    Δ(1/u) = {deltaX.toFixed(4)}
                   </text>
 
                   <text
                     x={pxCorner.x + 8}
                     y={(pxCorner.y + pxB.y) / 2 + 3}
-                    fill="#c084fc"
+                    fill="#c2410c"
                     fontSize="9"
                     fontFamily="monospace"
                     fontWeight="bold"
                     textAnchor="start"
                   >
-                    &Delta;(1/v) = {Math.abs(deltaY).toFixed(4)}
+                    Δ(1/v) = {deltaY.toFixed(4)}
                   </text>
                 </g>
               )}
 
-              {/* Y-intercept marker (0, 1/f) */}
+              {/* Y-intercept marker (0, c = 1/f) */}
               <circle
                 cx={scaleX(0)}
                 cy={scaleY(calculatedIntercept)}
                 r="4.5"
-                fill="#ec4899"
+                fill="#ea580c"
                 stroke="#ffffff"
                 strokeWidth="1.5"
               />
               <text
                 x={scaleX(0) - 10}
                 y={scaleY(calculatedIntercept) - 6}
-                fill="#ec4899"
+                fill="#c2410c"
                 fontSize="9"
                 fontFamily="monospace"
                 fontWeight="bold"
                 textAnchor="end"
               >
-                Intercept c = {calculatedIntercept.toFixed(4)} cm⁻¹
+                c = 1/f ({calculatedIntercept.toFixed(4)})
               </text>
 
               {/* Data Points from Observations */}
               {observations.map((obs, idx) => {
                 const cx = scaleX(obs.oneOverU);
                 const cy = scaleY(obs.oneOverV);
-                const isHovered = hoveredPoint?.id === obs.id;
 
                 return (
                   <g
                     key={obs.id}
-                    className="cursor-pointer transition-all"
+                    className="cursor-pointer"
                     onMouseEnter={() => setHoveredPoint(obs)}
                     onMouseLeave={() => setHoveredPoint(null)}
                   >
-                    {isHovered && (
-                      <circle cx={cx} cy={cy} r="8" fill="#818cf8" opacity="0.4" />
-                    )}
-                    <circle cx={cx} cy={cy} r="3.5" fill="#38bdf8" stroke="#ffffff" strokeWidth="1" />
+                    <circle cx={cx} cy={cy} r="4.5" fill="#ffffff" stroke="#4f46e5" strokeWidth="2" />
+                    <circle cx={cx} cy={cy} r="2" fill="#4f46e5" />
                     <text
                       x={cx}
-                      y={cy - 8}
-                      fill="#cbd5e1"
+                      y={cy - 7}
+                      fill="#475569"
                       fontSize="8.5"
                       fontFamily="monospace"
                       textAnchor="middle"
+                      fontWeight="bold"
                     >
                       #{idx + 1}
                     </text>
@@ -435,279 +482,246 @@ export const LensGraph: React.FC<LensGraphProps> = ({
                 );
               })}
 
-              {/* Selected Two Points on Best-Fit Line (Point A and Point B) */}
+              {/* Point A Marker (Blue) */}
               {hasEnoughData && (
                 <g>
-                  {/* Point A */}
-                  <g>
-                    <circle cx={pxA.x} cy={pxA.y} r="7" fill="#ec4899" opacity="0.3" />
-                    <circle cx={pxA.x} cy={pxA.y} r="4.5" fill="#ec4899" stroke="#ffffff" strokeWidth="1.5" />
-                    <text
-                      x={pxA.x}
-                      y={pxA.y - 9}
-                      fill="#f472b6"
-                      fontSize="9"
-                      fontFamily="monospace"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                    >
-                      A ({ptA_oneOverU.toFixed(4)}, {ptA_oneOverV.toFixed(4)})
-                    </text>
-                  </g>
+                  <circle cx={pxA.x} cy={pxA.y} r="8" fill="#2563eb" fillOpacity="0.3" />
+                  <circle cx={pxA.x} cy={pxA.y} r="4.5" fill="#2563eb" stroke="#ffffff" strokeWidth="1.5" />
+                  <rect
+                    x={pxA.x - 30}
+                    y={pxA.y - 24}
+                    width="60"
+                    height="16"
+                    rx="4"
+                    fill="#1e3a8a"
+                  />
+                  <text
+                    x={pxA.x}
+                    y={pxA.y - 13}
+                    textAnchor="middle"
+                    fontSize="8.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                    fill="#ffffff"
+                  >
+                    A ({ptA_X_disp.toFixed(4)}, {ptA_Y_disp.toFixed(4)})
+                  </text>
+                </g>
+              )}
 
-                  {/* Point B */}
-                  <g>
-                    <circle cx={pxB.x} cy={pxB.y} r="7" fill="#a855f7" opacity="0.3" />
-                    <circle cx={pxB.x} cy={pxB.y} r="4.5" fill="#a855f7" stroke="#ffffff" strokeWidth="1.5" />
-                    <text
-                      x={pxB.x}
-                      y={pxB.y - 9}
-                      fill="#c084fc"
-                      fontSize="9"
-                      fontFamily="monospace"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                    >
-                      B ({ptB_oneOverU.toFixed(4)}, {ptB_oneOverV.toFixed(4)})
-                    </text>
-                  </g>
+              {/* Point B Marker (Orange) */}
+              {hasEnoughData && (
+                <g>
+                  <circle cx={pxB.x} cy={pxB.y} r="8" fill="#ea580c" fillOpacity="0.3" />
+                  <circle cx={pxB.x} cy={pxB.y} r="4.5" fill="#ea580c" stroke="#ffffff" strokeWidth="1.5" />
+                  <rect
+                    x={pxB.x - 30}
+                    y={pxB.y - 24}
+                    width="60"
+                    height="16"
+                    rx="4"
+                    fill="#7c2d12"
+                  />
+                  <text
+                    x={pxB.x}
+                    y={pxB.y - 13}
+                    textAnchor="middle"
+                    fontSize="8.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                    fill="#ffffff"
+                  >
+                    B ({ptB_X_disp.toFixed(4)}, {ptB_Y_disp.toFixed(4)})
+                  </text>
                 </g>
               )}
             </svg>
           </div>
 
-          {/* Interactive Sliders to Choose Points on the Best-Fit Line */}
+          {/* Interactive Sliders for Adjusting Point A and Point B on the Line */}
           {hasEnoughData && (
-            <div className="w-full mt-3 p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5">
-              <div className="flex items-center justify-between text-xs font-mono">
-                <span className="text-slate-300 font-bold flex items-center gap-1.5">
-                  <Target className="w-3.5 h-3.5 text-pink-400" />
-                  Select Two Points on the Best-Fit Line:
+            <div className="w-full mt-3 p-3 rounded-xl bg-white border border-slate-200 space-y-2 text-xs font-mono">
+              <div className="flex items-center justify-between pb-1 border-b border-slate-100">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                  <Target className="w-3.5 h-3.5 text-indigo-600" />
+                  Adjust Point Positions Along Best-Fit Line:
                 </span>
-                <span className="text-slate-400 text-[11px]">
-                  Keep points well-separated for practical accuracy
+                <span className="text-[11px] text-slate-500">
+                  Select well-separated points to minimize reading errors
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Slider for Point A */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-mono">
-                    <span className="text-pink-400 font-bold">Point A (1/u₁, 1/v₁)</span>
-                    <span className="text-slate-300">
-                      ({ptA_oneOverU.toFixed(4)}, {ptA_oneOverV.toFixed(4)})
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                {/* Point A Slider (Blue) */}
+                <div>
+                  <div className="flex justify-between items-center text-[11px] mb-1">
+                    <span className="text-blue-700 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
+                      Point A (1/u₁, 1/v₁): ({ptA_X_disp.toFixed(4)}, {ptA_Y_disp.toFixed(4)})
                     </span>
                   </div>
                   <input
                     type="range"
                     min="0.05"
-                    max="0.45"
+                    max="0.48"
                     step="0.01"
                     value={posRatioA}
                     onChange={(e) => setPosRatioA(parseFloat(e.target.value))}
-                    className="w-full accent-pink-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    aria-label="Adjust position of Point A along best-fit line"
                   />
                 </div>
 
-                {/* Slider for Point B */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[11px] font-mono">
-                    <span className="text-purple-400 font-bold">Point B (1/u₂, 1/v₂)</span>
-                    <span className="text-slate-300">
-                      ({ptB_oneOverU.toFixed(4)}, {ptB_oneOverV.toFixed(4)})
+                {/* Point B Slider (Orange) */}
+                <div>
+                  <div className="flex justify-between items-center text-[11px] mb-1">
+                    <span className="text-orange-700 font-bold flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-orange-600 inline-block" />
+                      Point B (1/u₂, 1/v₂): ({ptB_X_disp.toFixed(4)}, {ptB_Y_disp.toFixed(4)})
                     </span>
                   </div>
                   <input
                     type="range"
-                    min="0.55"
+                    min="0.52"
                     max="0.95"
                     step="0.01"
                     value={posRatioB}
                     onChange={(e) => setPosRatioB(parseFloat(e.target.value))}
-                    className="w-full accent-purple-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg appearance-none"
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-600"
+                    aria-label="Adjust position of Point B along best-fit line"
                   />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Hovered Point Inspection Callout */}
-          <div className="w-full mt-2 pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-mono">
+          {/* Hovered Point Inspection */}
+          <div className="w-full mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-xs font-mono">
             {hoveredPoint ? (
-              <div className="text-sky-400 flex items-center gap-2">
-                <span>Reading #{hoveredPoint.trialNo}:</span>
-                <span className="text-white">u = {hoveredPoint.u} cm</span>
-                <span className="text-emerald-300">v = {hoveredPoint.v} cm</span>
-                <span className="text-yellow-300">f = {hoveredPoint.focalLength.toFixed(2)} cm</span>
+              <div className="text-indigo-700 flex items-center gap-2">
+                <span className="font-bold">Reading #{hoveredPoint.trialNo}:</span>
+                <span>u = {hoveredPoint.u} cm</span>
+                <span>v = {hoveredPoint.v} cm</span>
+                <span className="font-bold">f = {hoveredPoint.focalLength.toFixed(2)} cm</span>
               </div>
             ) : (
               <div className="text-slate-500">
-                Hover over data points to inspect experimental coordinates
+                Hover over data points to inspect experimental values
               </div>
             )}
             <div className="text-slate-400 text-[11px]">
-              Dashed line: Theoretical Model (f = {theoreticalFocalLength} cm)
+              Dashed line: Theoretical reference (f = {theoreticalFocalLength} cm)
             </div>
           </div>
         </div>
 
-        {/* Analytical Step-by-Step Practical Slope Panel (Span 5) */}
-        <div className="lg:col-span-5 flex flex-col justify-between space-y-4">
-          
-          {/* Traditional Two-Point Slope Calculation Box */}
-          <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/90 font-mono space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-              <span className="text-xs font-bold uppercase text-slate-700">
-                Two-Point Slope Calculation
-              </span>
-              <span className="text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-                Practical Method
+        {/* Right: Standardized 6-Step Two-Point Slope Calculation Panel (Span 5) */}
+        <div className="lg:col-span-5 flex flex-col gap-4">
+          <div className="bg-slate-900 text-white rounded-2xl p-5 sm:p-6 border border-slate-800 shadow-sm space-y-4">
+            <div className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-bold flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <span>Two-Point Slope Calculation</span>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/60">
+                Physics Practical Method
               </span>
             </div>
 
             {hasEnoughData ? (
-              <div className="space-y-3 text-xs">
-                {/* Selected Points Coordinates */}
-                <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-white border border-slate-200">
-                  <div>
-                    <span className="text-[10px] text-pink-600 font-bold block">Point A (X₁, Y₁):</span>
-                    <span className="text-slate-900 font-bold text-[11px]">
-                      ({ptA_oneOverU.toFixed(4)}, {ptA_oneOverV.toFixed(4)})
+              <div className="space-y-3 font-mono text-xs">
+                
+                {/* 1. Selected Points */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5">
+                  <div className="text-slate-400 text-[11px] font-bold">1. Selected Points on Best-Fit Line:</div>
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-blue-400 font-semibold">Point A (X₁, Y₁):</span>
+                    <span className="font-bold text-white">
+                      ({ptA_X_disp.toFixed(4)}, {ptA_Y_disp.toFixed(4)})
                     </span>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-purple-600 font-bold block">Point B (X₂, Y₂):</span>
-                    <span className="text-slate-900 font-bold text-[11px]">
-                      ({ptB_oneOverU.toFixed(4)}, {ptB_oneOverV.toFixed(4)})
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-orange-400 font-semibold">Point B (X₂, Y₂):</span>
+                    <span className="font-bold text-white">
+                      ({ptB_X_disp.toFixed(4)}, {ptB_Y_disp.toFixed(4)})
                     </span>
+                  </div>
+                  <div className="pt-1 border-t border-slate-800/80 text-[11px] text-slate-400 flex justify-between">
+                    <span>Δ(1/u) = {deltaX.toFixed(4)} cm⁻¹</span>
+                    <span>Δ(1/v) = {deltaY.toFixed(4)} cm⁻¹</span>
                   </div>
                 </div>
 
-                {/* Slope Formula */}
-                <div className="p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-100 space-y-1">
-                  <div className="text-indigo-900 text-[11px] font-bold">Lens Equation Linear Form:</div>
-                  <div className="text-xs font-bold text-indigo-800">
-                    1/v = m &bull; (1/u) + c &nbsp;&nbsp;(where c = 1/f)
+                {/* 2. Slope Formula */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                  <div className="text-slate-400 text-[11px] font-bold">2. Lens Equation Linear Form:</div>
+                  <div className="text-indigo-300 text-sm font-bold">
+                    1/v = m · (1/u) + c &nbsp;(where c = 1/f)
                   </div>
-                  <div className="text-[11px] text-indigo-900 font-semibold pt-1">
-                    Slope (m) = &Delta;(1/v) / &Delta;(1/u)
+                  <div className="text-[11px] text-slate-400">
+                    Slope (m) = [(1/v)₂ − (1/v)₁] / [(1/u)₂ − (1/u)₁] = Δ(1/v) / Δ(1/u)
                   </div>
                 </div>
 
-                {/* Step-by-Step Substitution */}
-                <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
-                  <div className="text-slate-500 text-[10px]">Step-by-Step Substitution:</div>
-                  <div className="text-[11px] text-slate-800">
-                    m = ({ptB_oneOverV.toFixed(4)} &minus; {ptA_oneOverV.toFixed(4)}) / ({ptB_oneOverU.toFixed(4)} &minus; {ptA_oneOverU.toFixed(4)})
+                {/* 3. Numerical Substitution */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                  <div className="text-slate-400 text-[11px] font-bold">3. Numerical Substitution:</div>
+                  <div className="text-slate-300">
+                    m = ({ptB_Y_disp.toFixed(4)} − {ptA_Y_disp.toFixed(4)}) / ({ptB_X_disp.toFixed(4)} − {ptA_X_disp.toFixed(4)})
                   </div>
-                  <div className="text-[11px] text-slate-800">
+                  <div className="text-emerald-400 font-bold">
                     m = {deltaY.toFixed(4)} / {deltaX.toFixed(4)}
                   </div>
-                  <div className="text-sm font-bold text-indigo-700 pt-1 border-t border-slate-100 flex items-center justify-between">
-                    <span>Evaluated Slope (m):</span>
-                    <span>{calculatedSlope.toFixed(3)} <span className="text-[10px] text-slate-500 font-normal">(Theory = 1.00)</span></span>
+                </div>
+
+                {/* 4. Final Calculated Slope */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                  <span className="text-slate-300 font-bold">4. Final Calculated Slope:</span>
+                  <span className="text-emerald-400 text-sm font-bold">
+                    m = {calculatedSlope.toFixed(3)} <span className="text-[11px] text-slate-400 font-normal">(Theory = 1.000)</span>
+                  </span>
+                </div>
+
+                {/* 5. Physical Interpretation */}
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 font-sans">
+                  <div className="text-slate-400 text-[11px] font-bold font-mono">5. Physical Interpretation:</div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    The thin lens equation <strong className="font-mono text-white">1/v − 1/u = 1/f</strong> rearranges to the linear equation <strong className="font-mono text-white">1/v = 1·(1/u) + (1/f)</strong>. The slope <strong className="font-mono text-indigo-300">m = 1.0</strong> confirms the lens formula, and the Y-intercept directly represents <strong className="font-mono text-emerald-300">c = 1/f</strong>.
+                  </p>
+                  <div className="pt-1 text-xs text-slate-300 font-mono">
+                    c = Y₁ − m · X₁ = <strong>{calculatedIntercept.toFixed(4)} cm⁻¹</strong>
                   </div>
                 </div>
 
-                {/* Intercept & Focal Length Deduction */}
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1.5">
-                  <div className="text-[10px] text-emerald-800 font-bold uppercase">
-                    Focal Length Deduction from Y-Intercept:
-                  </div>
-                  <div className="text-[11px] text-slate-700">
-                    c = Y₁ &minus; m &bull; X₁ = <strong>{calculatedIntercept.toFixed(4)} cm⁻¹</strong>
-                  </div>
-                  <div className="text-[11px] text-emerald-950 font-sans">
-                    Since <strong className="font-mono">c = 1 / f</strong>, the focal length is <strong className="font-mono">f = 1 / c</strong>:
-                  </div>
-                  <div className="flex justify-between items-center pt-1 border-t border-emerald-200 text-xs">
-                    <span className="text-emerald-900 font-bold">Focal Length (f):</span>
-                    <span className="text-base font-bold text-emerald-800 font-mono">
+                {/* 6. Final Experimental Result */}
+                <div className="p-3.5 rounded-xl bg-emerald-950 border border-emerald-800 text-white space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-emerald-300 text-[10px] font-bold uppercase font-mono">
+                        6. Final Experimental Result:
+                      </div>
+                      <div className="text-white font-bold text-sm">
+                        Focal Length (f = 1 / Intercept c)
+                      </div>
+                    </div>
+                    <span className="text-lg font-bold text-emerald-300 font-mono">
                       {experimentalF !== null ? `+${experimentalF.toFixed(2)} cm` : '—'}
                     </span>
                   </div>
+
+                  <div className="pt-2 border-t border-emerald-800/80 flex items-center justify-between text-xs text-emerald-200 font-mono">
+                    <span>Theoretical f: +{theoreticalFocalLength.toFixed(2)} cm</span>
+                    {percentageError !== null && (
+                      <span className="font-bold">Deviation: {percentageError.toFixed(2)}%</span>
+                    )}
+                  </div>
                 </div>
+
               </div>
             ) : (
-              <div className="py-6 text-center text-xs text-slate-500 space-y-1">
-                <AlertCircle className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-                <p>Record at least 2 optical bench observations to plot the best-fit line and calculate slope.</p>
+              <div className="py-8 text-center text-xs text-slate-400 space-y-2">
+                <AlertCircle className="w-6 h-6 text-amber-500 mx-auto" />
+                <p>Record at least 2 optical bench readings to draw the best-fit line and calculate slope.</p>
               </div>
             )}
           </div>
-
-          {/* Theoretical Reference & Error Analysis */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-200/90 font-mono space-y-3">
-            <div className="text-xs font-bold uppercase text-slate-600 border-b border-slate-100 pb-2">
-              Theoretical Reference &amp; Deviation
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                <div className="text-slate-400 text-[10px]">Theoretical f:</div>
-                <div className="text-base font-bold text-slate-700 mt-0.5">
-                  +{theoreticalFocalLength.toFixed(2)} <span className="text-[10px]">cm</span>
-                </div>
-              </div>
-
-              <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-100">
-                <div className="text-indigo-600 text-[10px]">Experimental f:</div>
-                <div className="text-base font-bold text-indigo-700 mt-0.5">
-                  {experimentalF !== null ? `+${experimentalF.toFixed(2)} cm` : '—'}
-                </div>
-              </div>
-            </div>
-
-            {percentageError !== null && (
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
-                <span className="text-emerald-800">Percentage Deviation:</span>
-                <span className="font-bold text-emerald-700">
-                  {percentageError.toFixed(2)}%
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Experimental Result Card */}
-          {hasEnoughData && experimentalF !== null ? (
-            <div id="lens-result-card" className="p-5 rounded-2xl bg-emerald-950 text-white border border-emerald-800 shadow-sm space-y-2">
-              <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-bold uppercase">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Experimental Result</span>
-              </div>
-
-              <p className="text-xs sm:text-sm text-emerald-100 font-sans leading-relaxed">
-                The experimental focal length of the convex lens determined via the two-point slope practical method is approximately{' '}
-                <strong className="text-white font-mono font-bold">+{experimentalF.toFixed(2)} cm</strong>.
-              </p>
-
-              <div className="pt-2 border-t border-emerald-800/80 font-mono text-xs space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-emerald-300">Theoretical Focal Length:</span>
-                  <span className="font-bold text-white">+{theoreticalFocalLength.toFixed(2)} cm</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-emerald-300">Experimental Focal Length:</span>
-                  <span className="font-bold text-white">+{experimentalF.toFixed(2)} cm</span>
-                </div>
-                {percentageError !== null && (
-                  <div className="flex justify-between">
-                    <span className="text-emerald-300">Percentage Error:</span>
-                    <span className="font-bold text-emerald-200">{percentageError.toFixed(2)}%</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 text-[11px] font-sans text-emerald-300">
-                Verified with {observations.length} optical bench data points using the traditional two-point slope method.
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-500 text-xs font-sans text-center">
-              Complete at least two trial recordings with different object distances to finalize the focal length deduction.
-            </div>
-          )}
-
         </div>
 
       </div>
