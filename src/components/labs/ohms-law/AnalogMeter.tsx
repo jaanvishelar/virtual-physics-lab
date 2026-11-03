@@ -89,7 +89,7 @@ export const AnalogMeter: React.FC<AnalogMeterProps> = ({
             width="184"
             height="130"
             rx="12"
-            fill="url(#bezel-)"
+            fill={`url(#bezel-${id})`}
             stroke="#cbd5e1"
             strokeWidth="2"
           />
